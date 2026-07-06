@@ -42,11 +42,15 @@ mkdir -p logs backups "$MODEL_CACHE_DIR"
 # Load env (DATABASE_URL, DEEPSEEK_API_KEY) so PM2 inherits it.
 set -a; # shellcheck disable=SC1091
 source .env.local; set +a
-export MODEL_CACHE_DIR PORT NODE_ENV=production
+export MODEL_CACHE_DIR PORT
 export HOSTNAME="$BIND_HOST"   # Next standalone server binds to $HOSTNAME:$PORT
+# NOTE: do NOT set NODE_ENV=production before install/build — it makes `npm ci`
+# skip devDependencies (drizzle-kit, tsx, tailwindcss, typescript) which the
+# build + db scripts need. NODE_ENV=production is set only for the PM2 runtime.
+unset NODE_ENV
 
-say "Installing dependencies (npm ci)…"
-npm ci
+say "Installing dependencies (incl. dev — needed for build + db tooling)…"
+npm ci --include=dev
 
 say "Ensuring Postgres (pgvector) is up…"
 docker compose up -d
@@ -57,16 +61,16 @@ done
 docker exec china-mos-db pg_isready -U chinamos -d chinamos >/dev/null || { echo "Postgres not ready"; exit 1; }
 
 say "Applying database schema (drizzle migrate)…"
-npx drizzle-kit migrate
+npm run db:migrate
 
 if [ "$FIRST" = 1 ]; then
   say "Seeding base data…"
-  npx tsx src/db/seed.ts
+  npm run db:seed
 fi
 
 if [ "$FIRST" = 1 ] || [ "$REFRESH" = 1 ]; then
   say "Ingesting real data sources (this can take a few minutes)…"
-  npx tsx src/db/ingest.ts
+  npm run db:ingest
 fi
 
 say "Building (standalone)…"
@@ -79,14 +83,15 @@ cp -r .next/static .next/standalone/.next/static
 [ -d public ] && cp -r public .next/standalone/public || true
 
 say "Building RAG vector index (downloads embedding model on first run)…"
-npx tsx src/db/embed.ts
+npm run db:embed
 
-say "Starting/restarting with PM2 ($APP_NAME on $HOSTNAME:$PORT)…"
+say "Starting/restarting with PM2 ($APP_NAME on $BIND_HOST:$PORT)…"
 command -v pm2 >/dev/null || npm i -g pm2
+export NODE_ENV=production   # runtime only
 if pm2 describe "$APP_NAME" >/dev/null 2>&1; then
   pm2 restart "$APP_NAME" --update-env
 else
-  PORT="$PORT" HOSTNAME="$BIND_HOST" MODEL_CACHE_DIR="$MODEL_CACHE_DIR" \
+  PORT="$PORT" HOSTNAME="$BIND_HOST" MODEL_CACHE_DIR="$MODEL_CACHE_DIR" NODE_ENV=production \
     pm2 start .next/standalone/server.js --name "$APP_NAME"
 fi
 pm2 save
