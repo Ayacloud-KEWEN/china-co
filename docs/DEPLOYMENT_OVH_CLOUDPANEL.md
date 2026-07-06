@@ -29,7 +29,7 @@ DeepSeek API ◄── 出站 HTTPS ──┘（AI 问答时）
 ## 推荐路径：一键脚本 `deploy.sh`
 
 做完 **第 1–6 步**（域名、CloudPanel 站点、Docker、拉代码、`.env.local`）后，
-其余（起库 → migrate → 种子 → 摄取 → 构建 standalone → 建向量索引 → PM2 启动 → 冒烟测试）
+其余（起库 → migrate → 种子 → 摄取 → 构建 → 建向量索引 → PM2 启动 → 冒烟测试）
 可用仓库根目录的 `deploy.sh` 一键完成：
 
 ```bash
@@ -41,8 +41,7 @@ DeepSeek API ◄── 出站 HTTPS ──┘（AI 问答时）
 可用环境变量覆盖：`PORT`（默认 3200）、`BIND_HOST`（默认 127.0.0.1）、
 `APP_NAME`（默认 china-mos）、`MODEL_CACHE_DIR`（默认 `<root>/.model-cache`，持久化 embedding 模型）。
 
-脚本用 **standalone 产物**（`output: 'standalone'`）：构建后自动把 `.next/static` 与 `public`
-拷到 `.next/standalone`，用 PM2 跑 `node .next/standalone/server.js`。
+脚本用 `next build` + PM2 跑 `next start`（伺服静态可靠、原生 embedding 库正常）。
 下面第 7–8 步是它内部做的事的**手动等价版**（想手动或排错时看）。
 
 ---
@@ -169,28 +168,26 @@ docker exec china-mos-db psql -U chinamos -d chinamos -c "select count(*) from r
 
 ---
 
-## 8. 构建（standalone）并用 PM2 常驻
+## 8. 构建并用 PM2 常驻（`next start`）
 
-项目已开启 `output: 'standalone'`（自包含产物，体积小）。构建后需把静态资源拷进产物：
+用 `next start` 运行（伺服静态可靠、完整 `node_modules` 让本地 embedding 原生库正常加载）。
+> 早期曾用 `output: 'standalone'`，但 Next 16 + Turbopack 下 standalone 伺服 `/_next/static` 会返回 500，已改回 `next start`。
 
 ```bash
 npm run build
-mkdir -p .next/standalone/.next
-cp -r .next/static .next/standalone/.next/static
-[ -d public ] && cp -r public .next/standalone/public   # 若有 public
 
 npm i -g pm2   # 用站点用户或 root 全局装
 
-# 端口需与 CloudPanel 反代一致（默认 3200）；MODEL_CACHE_DIR 持久化 embedding 模型
-PORT=3200 HOSTNAME=127.0.0.1 MODEL_CACHE_DIR="$PWD/.model-cache" \
-  pm2 start .next/standalone/server.js --name china-mos
+# 把 .env.local 的变量注入进程；端口需与 CloudPanel 反代一致（3200）
+set -a; source .env.local; set +a
+PORT=3200 HOSTNAME=127.0.0.1 MODEL_CACHE_DIR="$PWD/.model-cache" NODE_ENV=production \
+  pm2 start npm --name china-mos -- run start
 pm2 save
 pm2 startup   # 按提示复制它输出的命令（用 root 执行）实现开机自启
 ```
 
-- standalone 的 `server.js` 监听 `HOSTNAME:PORT`。
-- **注意**：standalone 不会自动读 `.env.local`，务必用上面方式把环境变量（含 `DATABASE_URL`、
-  `DEEPSEEK_API_KEY`、`MODEL_CACHE_DIR`）注入 PM2 进程（`deploy.sh` 已用 `source .env.local` 处理）。
+- `npm run start` = `next start`，监听 `HOSTNAME:PORT`（读 env）。
+- `next start` 会自动读 `.env.local`；但用 `source .env.local` 注入更保险，且 PM2 能透传给子进程。
 - 查看：`pm2 status` / `pm2 logs china-mos`。
 
 此时 CloudPanel 的反代已把 `china.francego.fr` → `127.0.0.1:3200`，应能访问。
@@ -267,16 +264,14 @@ CloudPanel → **Admin Area → Security（Firewall）**：
 ```bash
 cd /home/<siteuser>/htdocs/china.francego.fr
 git pull
-./deploy.sh            # 更新（migrate + 构建 standalone + 重建向量 + 重启）
+./deploy.sh            # 更新（migrate + 构建 + 重建向量 + 重启）
 # 需同时刷新真实数据时：./deploy.sh --refresh
 ```
 
 手动等价：
 
 ```bash
-git pull && npm ci && npm run build
-mkdir -p .next/standalone/.next && cp -r .next/static .next/standalone/.next/static
-[ -d public ] && cp -r public .next/standalone/public
+git pull && npm ci --include=dev && npm run build
 npx drizzle-kit migrate          # 如改了 schema
 # 如改了数据/摄取：npm run db:ingest
 npm run db:embed                 # 重建向量索引
@@ -330,9 +325,9 @@ pm2 restart china-mos --update-env
 - [ ] Docker 已装，`<siteuser>` 加入 docker 组并重登
 - [ ] 代码已拉到 `htdocs/<domain>`
 - [ ] `.env.local` 配好 `DATABASE_URL` + `DEEPSEEK_API_KEY`
-- [ ] `./deploy.sh --first`（或手动：db:setup + 构建 standalone + 组装静态资源；rag_docs=60）
-- [ ] `npm run build` 通过（生成 `.next/standalone`）
-- [ ] PM2 跑 `server.js` + `pm2 save` + `pm2 startup`
+- [ ] `./deploy.sh --first`（或手动：db:setup + `npm run build`；rag_docs=60）
+- [ ] `npm run build` 通过
+- [ ] PM2 跑 `npm -- run start`（next start）+ `pm2 save` + `pm2 startup`
 - [ ] vhost 加 `proxy_buffering off;` 等流式头
 - [ ] Let's Encrypt 证书已签发
 - [ ] 防火墙只开 80/443/22/8443

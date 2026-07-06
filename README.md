@@ -98,7 +98,7 @@ Comtrade、OSM）写入相应记录，满足「AI 分析保留来源引用」要
 
 📖 详细文档：**[数据源说明](docs/DATA_SOURCES.md)** · **[开发过程](docs/DEVELOPMENT.md)** · **[运营手册](docs/OPERATIONS.md)** · **[OVH+CloudPanel 部署](docs/DEPLOYMENT_OVH_CLOUDPANEL.md)**
 
-> 生产部署：项目已开启 `output: 'standalone'`；服务器上做完前置步骤后跑 `./deploy.sh --first` 一键部署（详见部署文档）。
+> 生产部署：`next build` + PM2 跑 `next start`；服务器上做完前置步骤后跑 `./deploy.sh --first` 一键部署（详见部署文档）。
 
 真实数据展示位置：
 - 首页「中国经济指标」→ **World Bank** 真实 GDP 增速 / CPI / GDP 总量 / FDI / 出口 / 人口（带年份与同比）

@@ -10,7 +10,7 @@
 
 | 组件 | 说明 | 进程/容器 |
 |------|------|-----------|
-| Web 应用 | Next.js（App Router）SSR + API | standalone `server.js`（PM2 常驻，端口 3200） |
+| Web 应用 | Next.js（App Router）SSR + API | `next start`（PM2 常驻，端口 3200） |
 | 数据库 | PostgreSQL 16 + pgvector | Docker 容器 `china-mos-db`（仅监听 127.0.0.1） |
 | Embedding | transformers.js 本地模型（随 Web 进程） | 无独立进程 |
 | LLM | DeepSeek API（外部） | 需 `DEEPSEEK_API_KEY`；含 RAG 检索 + 工具调用 |

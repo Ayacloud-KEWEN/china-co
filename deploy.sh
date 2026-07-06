@@ -73,37 +73,22 @@ if [ "$FIRST" = 1 ] || [ "$REFRESH" = 1 ]; then
   npm run db:ingest
 fi
 
-say "Building (standalone)…"
+say "Building…"
 npm run build
-
-say "Assembling standalone bundle…"
-# The standalone server needs static assets + public copied alongside it.
-mkdir -p .next/standalone/.next
-cp -r .next/static .next/standalone/.next/static
-[ -d public ] && cp -r public .next/standalone/public || true
-
-# Next's dependency tracer can miss native shared libraries (e.g. onnxruntime's
-# libonnxruntime.so). Copy the full native packages into the standalone bundle
-# so the local embedding model (transformers.js) loads at runtime.
-for pkg in onnxruntime-node @xenova/transformers sharp; do
-  if [ -d "node_modules/$pkg" ]; then
-    rm -rf ".next/standalone/node_modules/$pkg"
-    mkdir -p ".next/standalone/node_modules/$(dirname "$pkg")"
-    cp -r "node_modules/$pkg" ".next/standalone/node_modules/$pkg"
-  fi
-done
 
 say "Building RAG vector index (downloads embedding model on first run)…"
 npm run db:embed
 
-say "Starting/restarting with PM2 ($APP_NAME on $BIND_HOST:$PORT)…"
+say "Starting/restarting with PM2 ($APP_NAME on $BIND_HOST:$PORT via next start)…"
 command -v pm2 >/dev/null || npm i -g pm2
 export NODE_ENV=production   # runtime only
 if pm2 describe "$APP_NAME" >/dev/null 2>&1; then
   pm2 restart "$APP_NAME" --update-env
 else
+  # `next start` reads PORT/HOSTNAME from env; uses full node_modules (reliable
+  # static serving + native embedding libs).
   PORT="$PORT" HOSTNAME="$BIND_HOST" MODEL_CACHE_DIR="$MODEL_CACHE_DIR" NODE_ENV=production \
-    pm2 start .next/standalone/server.js --name "$APP_NAME"
+    pm2 start npm --name "$APP_NAME" -- run start
 fi
 pm2 save
 

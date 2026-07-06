@@ -1,13 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Self-contained production build (.next/standalone) — smaller deploy, run via
-  // `node .next/standalone/server.js`. See deploy.sh + docs/DEPLOYMENT_*.md.
-  output: "standalone",
+  // We run production with `next start` (PM2) — reliable static serving and full
+  // node_modules (so transformers.js / onnxruntime native libs load correctly).
+  // NOTE: `output: 'standalone'` was intentionally removed — with Next 16 +
+  // Turbopack it mis-served /_next/static (500s). See docs/DEPLOYMENT_*.md.
 
-  // transformers.js (local embeddings) + its ONNX runtime ship native binaries
-  // and model assets; keep them external so they're required from node_modules
-  // at runtime instead of being bundled.
+  // Keep the local-embedding native packages external (not bundled).
   serverExternalPackages: ["@xenova/transformers", "onnxruntime-node", "sharp"],
 };
 
