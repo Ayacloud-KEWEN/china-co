@@ -15,7 +15,7 @@
     "db:ingest": "tsx src/db/ingest.ts",
     "db:embed": "tsx src/db/embed.ts",
     "db:studio": "drizzle-kit studio",
-    "db:setup": "docker compose up -d && drizzle-kit push && tsx src/db/seed.ts && tsx src/db/ingest.ts && tsx src/db/embed.ts"
+    "db:setup": "docker compose up -d && drizzle-kit migrate && tsx src/db/seed.ts && tsx src/db/ingest.ts && tsx src/db/embed.ts"
   },
   "dependencies": {
     "@ai-sdk/deepseek": "^3.0.2",

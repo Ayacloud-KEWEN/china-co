@@ -150,14 +150,14 @@ npm run db:setup
 `db:setup` 等价于：
 ```bash
 docker compose up -d          # 起 Postgres+pgvector（仅本机）
-npx drizzle-kit push          # 建表
+npx drizzle-kit migrate       # 建表（用迁移文件，不会像 push 那样卡在 "Pulling schema"）
 tsx src/db/seed.ts            # 种子
 tsx src/db/ingest.ts          # 摄取 14 个真实数据源（2–4 分钟）
 tsx src/db/embed.ts           # 本地嵌入 + 建 rag_docs 向量索引（首次下载 ~110MB 模型）
 ```
 
 > 若 `<siteuser>` 未加入 docker 组：先用 root 跑 `docker compose up -d`，
-> 再用站点用户跑其余步骤（`drizzle-kit push` / `seed` / `ingest` / `embed`）。
+> 再用站点用户跑其余步骤（`drizzle-kit migrate` / `seed` / `ingest` / `embed`）。
 
 校验：
 ```bash
@@ -300,7 +300,7 @@ pm2 restart china-mos --update-env
 若你更想用**托管 Postgres**（如 Neon/Supabase，含 pgvector）或系统原生安装：
 
 - **托管**：在服务商建库并启用 `vector` 扩展，把 `DATABASE_URL` 换成其连接串，跳过第 4、7 步的 docker，
-  直接 `npx drizzle-kit push && tsx src/db/seed.ts && npm run db:ingest && npm run db:embed`。
+  直接 `npx drizzle-kit migrate && tsx src/db/seed.ts && npm run db:ingest && npm run db:embed`。
 - **原生**（Debian/Ubuntu）：`apt install postgresql-16 postgresql-16-pgvector`，
   建库建用户，`CREATE EXTENSION vector;`，`DATABASE_URL` 指向本机 5432。
 
