@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   Home, Search, Building2, Factory, MapPin, Truck, ScrollText, BookOpen,
-  Network, MessageSquare, FileText, Users, Moon, Sun, Globe, Menu, X, Briefcase,
+  Network, MessageSquare, FileText, Users, Moon, Sun, Globe, Menu, X, Briefcase, GitCompare,
 } from "lucide-react";
 import { useT, useLang, langLabels, Lang } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
@@ -26,6 +26,7 @@ const groups: { label: string; items: { href: string; key: string; icon: typeof 
   { label: "nav.groups.ai", items: [
     { href: "/playbooks", key: "nav.playbooks", icon: BookOpen },
     { href: "/graph", key: "nav.graph", icon: Network },
+    { href: "/compare", key: "nav.compare", icon: GitCompare },
     { href: "/consultant", key: "nav.consultant", icon: MessageSquare },
     { href: "/reports", key: "nav.reports", icon: FileText },
   ]},

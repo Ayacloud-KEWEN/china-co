@@ -27,6 +27,7 @@ export const dict: Dict = {
   "nav.reports": { zh: "报告生成", en: "Reports", fr: "Rapports" },
   "nav.workspace": { zh: "咨询工作台", en: "Workspace", fr: "Espace de travail" },
   "nav.opportunities": { zh: "商机中心", en: "Opportunities", fr: "Opportunités" },
+  "nav.compare": { zh: "对比分析", en: "Compare", fr: "Comparer" },
   "nav.groups.intel": { zh: "情报", en: "Intelligence", fr: "Intelligence" },
   "nav.groups.ai": { zh: "AI 工具", en: "AI Tools", fr: "Outils IA" },
   "nav.groups.collab": { zh: "协作", en: "Collaboration", fr: "Collaboration" },

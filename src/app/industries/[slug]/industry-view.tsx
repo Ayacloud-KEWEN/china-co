@@ -3,6 +3,7 @@
 import { useLang } from "@/lib/i18n";
 import { PageHeader, Card, Badge, Stat, SectionTitle } from "@/components/ui";
 import { AiPanel } from "@/components/ai-panel";
+import { BarChart } from "@/components/charts";
 import type { Industry } from "@/db/schema";
 
 function formatUSD(v: number): string {
@@ -43,6 +44,12 @@ function TradeCard({ trade }: { trade: NonNullable<Industry["trade"]> }) {
         <div className="text-xs text-muted">{trade.hs} · 出口至全球</div>
         <div className="text-2xl font-bold">{formatUSD(trade.exportUSD)}</div>
       </div>
+      {trade.history && trade.history.length > 1 && (
+        <div className="mb-3">
+          <div className="mb-1 text-xs font-medium text-muted">中国出口额 · 逐年（十亿美元）</div>
+          <BarChart data={trade.history.map((h) => ({ label: String(h.year), value: h.exportUSD / 1e9 }))} height={150} fmt={(v) => `${v.toFixed(0)}`} />
+        </div>
+      )}
       {trade.topPartners.length > 0 && (
         <div className="space-y-1.5">
           <div className="text-xs font-medium text-muted">主要出口市场</div>

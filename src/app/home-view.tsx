@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useLang, useT } from "@/lib/i18n";
 import { AiPanel } from "@/components/ai-panel";
-import { Card, SectionTitle, Stat, Badge } from "@/components/ui";
+import { Card, SectionTitle, Badge } from "@/components/ui";
 import { ChinaMap } from "@/components/china-map";
 import { MapEmbed } from "@/components/map-embed";
 import type { News, Indicator, Industry, Company, Policy, Playbook, Fx, City } from "@/db/schema";
@@ -50,9 +50,17 @@ export function HomeView({ news, indicators, industries, companies, policies, pl
         <SectionTitle>{t("home.indicators")}</SectionTitle>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {indicators.map((ind) => (
-            <Stat key={ind.id} label={ind.label[lang]} value={ind.value} trend={ind.trend} up={ind.up} />
+            <div key={ind.id} className="rounded-xl border bg-surface p-4">
+              <div className="text-xs text-muted">{ind.label[lang]}</div>
+              <div className="mt-1 text-xl font-semibold">{ind.value}</div>
+              <div className={`mt-0.5 text-xs font-medium ${ind.up ? "text-emerald-500" : "text-red-500"}`}>{ind.up ? "▲" : "▼"} {ind.trend}</div>
+              {ind.series && ind.series.length > 1 && (
+                <div className="mt-1"><Sparkline data={ind.series.map((s) => s.value)} up={ind.up} /></div>
+              )}
+            </div>
           ))}
         </div>
+        <div className="mt-1.5 text-[11px] text-muted">近 12 年趋势 · World Bank</div>
       </section>
 
       {fx.length > 0 && (

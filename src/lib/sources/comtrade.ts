@@ -16,6 +16,7 @@ export type TradeFlow = {
   year: number;
   exportUSD: number;
   topPartners: { name: string; valueUSD: number }[];
+  history?: { year: number; exportUSD: number }[];
 };
 
 async function fetchRows(params: Record<string, string | number>): Promise<Record<string, unknown>[]> {
@@ -53,6 +54,19 @@ export async function getChinaExport(hs: string, year: number): Promise<TradeFlo
   } catch {
     return null;
   }
+}
+
+// China's world export value for an HS code across several years (preview only
+// accepts one period per call, so we loop with a small delay).
+export async function getChinaExportSeries(hs: string, years: number[]): Promise<{ year: number; exportUSD: number }[]> {
+  const out: { year: number; exportUSD: number }[] = [];
+  for (const year of years) {
+    const rows = await fetchRows({ reporterCode: 156, period: year, partnerCode: 0, cmdCode: hs, flowCode: "X" });
+    const v = Number(rows[0]?.primaryValue ?? 0);
+    if (v > 0) out.push({ year, exportUSD: v });
+    await new Promise((r) => setTimeout(r, 800));
+  }
+  return out.sort((a, b) => a.year - b.year);
 }
 
 export function formatUSD(v: number): string {

@@ -17,6 +17,31 @@ async function sparql(query: string): Promise<Record<string, { value: string }>[
   }
 }
 
+export type Ownership = { founders: string[]; parents: string[]; subsidiaries: string[] };
+
+// Founders (P112), parent orgs (P749), subsidiaries (P355) for a company QID.
+export async function getOwnership(qid: string): Promise<Ownership | null> {
+  const q = `SELECT ?type ?vLabel WHERE {
+    { wd:${qid} wdt:P112 ?v. BIND('founder' AS ?type) } UNION
+    { wd:${qid} wdt:P749 ?v. BIND('parent' AS ?type) } UNION
+    { wd:${qid} wdt:P355 ?v. BIND('sub' AS ?type) }
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "zh,en". }
+  } LIMIT 40`;
+  const rows = await sparql(q);
+  if (!rows) return null;
+  const founders: string[] = [], parents: string[] = [], subsidiaries: string[] = [];
+  for (const r of rows) {
+    const name = r.vLabel?.value;
+    if (!name || /^Q\d+$/.test(name)) continue;
+    const type = r.type?.value;
+    if (type === "founder" && !founders.includes(name)) founders.push(name);
+    else if (type === "parent" && !parents.includes(name)) parents.push(name);
+    else if (type === "sub" && !subsidiaries.includes(name)) subsidiaries.push(name);
+  }
+  if (!founders.length && !parents.length && !subsidiaries.length) return null;
+  return { founders, parents, subsidiaries: subsidiaries.slice(0, 8) };
+}
+
 export type Province = { name: string; gdpCny: number; rank: number };
 
 // Q1615742 = province of the People's Republic of China. Take the max GDP (P2131)

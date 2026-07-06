@@ -43,6 +43,24 @@ export type Financials = {
   grossMargin: number | null; profitMargin: number | null; roe: number | null;
 };
 
+// 5-year monthly close history via the v8 chart endpoint (no crumb needed).
+export async function getPriceHistory(symbol: string): Promise<{ t: string; c: number }[] | null> {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=5y&interval=1mo`;
+  try {
+    const out = await curl([url]);
+    if (!out.trim().startsWith("{")) return null;
+    const j = JSON.parse(out);
+    const r = j.chart?.result?.[0];
+    const ts: number[] = r?.timestamp ?? [];
+    const closes: (number | null)[] = r?.indicators?.quote?.[0]?.close ?? [];
+    const pts = ts.map((t, i) => ({ t: new Date(t * 1000).toISOString().slice(0, 7), c: closes[i] }))
+      .filter((p): p is { t: string; c: number } => typeof p.c === "number");
+    return pts.length ? pts : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getFinancials(symbol: string): Promise<Financials | null> {
   const cr = await ensureCrumb();
   if (!cr) return null;

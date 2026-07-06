@@ -22,6 +22,22 @@ export async function getIndicator(code: string): Promise<WBSeries | null> {
   }
 }
 
+// Multi-year series (oldest → newest) for trend charts.
+export async function getIndicatorSeries(code: string, n = 12): Promise<{ year: string; value: number }[] | null> {
+  const url = `https://api.worldbank.org/v2/country/CHN/indicator/${code}?format=json&mrv=${n}`;
+  try {
+    const res = await fetch(url, { headers: { accept: "application/json" } });
+    if (!res.ok) return null;
+    const j = await res.json();
+    const rows: { date: string; value: number | null }[] = Array.isArray(j) ? j[1] ?? [] : [];
+    const pts = rows.filter((r) => r.value != null).map((r) => ({ year: r.date, value: r.value as number }))
+      .sort((a, b) => Number(a.year) - Number(b.year));
+    return pts.length ? pts : null;
+  } catch {
+    return null;
+  }
+}
+
 export function fmtPercent(v: number): string {
   return `${v.toFixed(1)}%`;
 }

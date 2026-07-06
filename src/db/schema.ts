@@ -27,6 +27,10 @@ export const companies = pgTable("companies", {
   patents: jsonb("patents").$type<PatentPortfolio>(),
   // Enriched from Yahoo Finance (nullable; only for listed companies).
   financials: jsonb("financials").$type<Financials>(),
+  // 5-year monthly close price history (Yahoo). {t:"YYYY-MM", c:number}
+  priceHistory: jsonb("price_history").$type<{ t: string; c: number }[]>(),
+  // Ownership from Wikidata: founders / parents / subsidiaries (names).
+  ownership: jsonb("ownership").$type<{ founders: string[]; parents: string[]; subsidiaries: string[] }>(),
 });
 
 type PatentPortfolio = {
@@ -46,7 +50,7 @@ type Financials = {
 };
 
 type ResearchTrend = { query: string; total: number; series: { year: number; count: number }[] };
-type TradeFlow = { hs: string; year: number; exportUSD: number; topPartners: { name: string; valueUSD: number }[] };
+type TradeFlow = { hs: string; year: number; exportUSD: number; topPartners: { name: string; valueUSD: number }[]; history?: { year: number; exportUSD: number }[] };
 type Geo = { lat: number; lon: number };
 type Poi = { name: string; lat: number; lon: number };
 
@@ -122,6 +126,8 @@ export const indicators = pgTable("indicators", {
   value: text("value").notNull(),
   trend: text("trend").notNull(),
   up: boolean("up").notNull(),
+  // ~12-year history for trend charts (World Bank). {year, value}
+  series: jsonb("series").$type<{ year: string; value: number }[]>(),
 });
 
 export const provinces = pgTable("provinces", {

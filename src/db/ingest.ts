@@ -9,13 +9,13 @@ import { getWikidataFacts } from "../lib/sources/wikidata";
 import { getGoogleNews, relativeFromRfc822 } from "../lib/sources/googlenews";
 import { getChinaBusinessNews, relativeTime } from "../lib/sources/gdelt";
 import { getResearchTrend } from "../lib/sources/openalex";
-import { getChinaExport, formatUSD } from "../lib/sources/comtrade";
+import { getChinaExport, getChinaExportSeries, formatUSD } from "../lib/sources/comtrade";
 import { getIndustrialSites, type Bbox } from "../lib/sources/overpass";
 import { getPatents } from "../lib/sources/googlepatents";
-import { getIndicator, fmtPercent, fmtUSD, fmtCount } from "../lib/sources/worldbank";
-import { getFinancials } from "../lib/sources/yahoo";
+import { getIndicator, getIndicatorSeries, fmtPercent, fmtUSD, fmtCount } from "../lib/sources/worldbank";
+import { getFinancials, getPriceHistory } from "../lib/sources/yahoo";
 import { getFxSeries } from "../lib/sources/frankfurter";
-import { getProvinceGDP, getTradeFairs } from "../lib/sources/wikidata-sparql";
+import { getProvinceGDP, getTradeFairs, getOwnership } from "../lib/sources/wikidata-sparql";
 import { getTenders } from "../lib/sources/wbprocurement";
 
 type Source = { name: string; url: string };
@@ -113,21 +113,31 @@ async function main() {
     const patents = assignee ? await getPatents(assignee, 5) : null;
     if (patents) extraSources.push({ name: "Google Patents", url: patents.searchUrl });
 
-    // Financials from Yahoo Finance (listed companies only).
+    // Financials + 5y price history from Yahoo Finance (listed companies only).
     const symbol = stockSymbol[c.slug];
     const financials = symbol ? await getFinancials(symbol) : null;
+    const priceHistory = symbol ? await getPriceHistory(symbol) : null;
     if (financials) extraSources.push({ name: `Yahoo Finance (${symbol})`, url: `https://finance.yahoo.com/quote/${symbol}` });
+
+    // Ownership (founders / parents / subsidiaries) from Wikidata.
+    const ownership = qid ? await getOwnership(qid) : null;
 
     const sources = dedupeSources([...extraSources, ...c.sources]);
 
     await db.update(schema.companies)
-      .set({ overview, founded, employees, sources, patents: patents ?? c.patents, financials: financials ?? c.financials })
+      .set({
+        overview, founded, employees, sources,
+        patents: patents ?? c.patents, financials: financials ?? c.financials,
+        priceHistory: priceHistory ?? c.priceHistory, ownership: ownership ?? c.ownership,
+      })
       .where(eq(schema.companies.slug, c.slug));
 
     const hit = [zh && "zh", en && "en", fr && "fr"].filter(Boolean).join("/") || "none";
     const pat = patents ? ` · patents ${patents.total.toLocaleString()}` : "";
     const fin = financials?.marketCap ? ` · mktcap ${(financials.marketCap / 1e9).toFixed(0)}B` : "";
-    console.log(`  ✓ ${c.slug.padEnd(9)} live overview: ${hit}${qid ? ` · ${qid} (founded ${founded})` : ""}${pat}${fin}`);
+    const px = priceHistory ? ` · ${priceHistory.length}mo px` : "";
+    const own = ownership ? ` · own(${ownership.founders.length}创/${ownership.subsidiaries.length}子)` : "";
+    console.log(`  ✓ ${c.slug.padEnd(9)} live overview: ${hit}${qid ? ` · ${qid} (founded ${founded})` : ""}${pat}${fin}${px}${own}`);
     await sleep(500); // be polite to Wikipedia / Google Patents
   }
 
@@ -144,6 +154,12 @@ async function main() {
     // best partner list seen across runs rather than regressing to empty.
     if (tradeStored && !tradeStored.topPartners?.length && ind.trade?.topPartners?.length) {
       tradeStored = { ...tradeStored, topPartners: ind.trade.topPartners };
+    }
+    // Multi-year export history for the trend chart (keep best across runs).
+    if (tradeStored && cfg.hs) {
+      const history = await getChinaExportSeries(cfg.hs, [2019, 2020, 2021, 2022, 2023]);
+      const best = history.length >= (ind.trade?.history?.length ?? 0) ? history : ind.trade?.history;
+      if (best?.length) tradeStored = { ...tradeStored, history: best };
     }
 
     await db.update(schema.industries)
@@ -182,10 +198,11 @@ async function main() {
     { code: "SP.POP.TOTL", type: "count", label: { zh: "人口", en: "Population", fr: "Population" } },
   ];
   const fmt = { pct: fmtPercent, usd: fmtUSD, count: fmtCount };
-  const indicatorRows: { label: { zh: string; en: string; fr: string }; value: string; trend: string; up: boolean }[] = [];
+  const indicatorRows: { label: { zh: string; en: string; fr: string }; value: string; trend: string; up: boolean; series: { year: string; value: number }[] | null }[] = [];
   for (const ind of wbIndicators) {
     const s = await getIndicator(ind.code);
     if (!s) continue;
+    const series = await getIndicatorSeries(ind.code, 12);
     const value = fmt[ind.type](s.latest.value);
     let trend = s.latest.year;
     let up = true;
@@ -202,7 +219,7 @@ async function main() {
     }
     indicatorRows.push({
       label: { zh: `${ind.label.zh} · ${s.latest.year}`, en: `${ind.label.en} · ${s.latest.year}`, fr: `${ind.label.fr} · ${s.latest.year}` },
-      value, trend, up,
+      value, trend, up, series,
     });
   }
   if (indicatorRows.length >= 4) {

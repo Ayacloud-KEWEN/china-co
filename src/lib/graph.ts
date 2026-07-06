@@ -50,6 +50,12 @@ export async function buildGraph(): Promise<Graph> {
       add(`mkt:${m}`, m, "市场");
       link(`co:${c.slug}`, `mkt:${m}`, "出口");
     }
+    // Ownership (Wikidata): founders / parents / subsidiaries
+    if (c.ownership) {
+      for (const f of c.ownership.founders) { add(`per:${f}`, f, "创始人"); link(`per:${f}`, `co:${c.slug}`, "创立"); }
+      for (const p of c.ownership.parents) { add(`org:${p}`, p, "母公司"); link(`org:${p}`, `co:${c.slug}`, "控股"); }
+      for (const s of c.ownership.subsidiaries.slice(0, 5)) { add(`org:${s}`, s, "子公司"); link(`co:${c.slug}`, `org:${s}`, "子公司"); }
+    }
   }
 
   // Suppliers → HQ city (they live in Chinese cities)

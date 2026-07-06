@@ -8,6 +8,7 @@ import type { Graph } from "@/lib/graph";
 
 const kindColor: Record<string, string> = {
   企业: "#2563eb", 行业: "#dc2626", 城市: "#059669", 市场: "#db2777", 供应商: "#0891b2",
+  创始人: "#7c3aed", 母公司: "#ea580c", 子公司: "#0d9488",
 };
 
 // Seeded RNG for a stable layout across renders.

@@ -3,6 +3,7 @@
 import { useLang, useT } from "@/lib/i18n";
 import { PageHeader, Card, Badge, RiskBadge, Stat, SectionTitle } from "@/components/ui";
 import { AiPanel } from "@/components/ai-panel";
+import { LineChart } from "@/components/charts";
 import type { Company } from "@/db/schema";
 
 type Fin = NonNullable<Company["financials"]>;
@@ -47,6 +48,31 @@ function FinancialsCard({ f }: { f: Fin }) {
         ))}
       </div>
       <div className="mt-3 text-[11px] text-muted">来源：Yahoo Finance · 截至 {f.asOf}（数据延迟，仅供参考，非投资建议）</div>
+    </Card>
+  );
+}
+
+function PriceChart({ history, currency }: { history: NonNullable<Company["priceHistory"]>; currency: string }) {
+  const sym = currency === "HKD" ? "HK$" : currency === "USD" ? "$" : "¥";
+  return (
+    <Card>
+      <SectionTitle>股价走势 · 近 5 年（月度收盘）</SectionTitle>
+      <LineChart data={history.map((p) => ({ label: p.t.slice(0, 4), value: p.c }))} height={180} fmt={(v) => `${sym}${v.toFixed(0)}`} />
+      <div className="mt-2 text-[11px] text-muted">来源：Yahoo Finance</div>
+    </Card>
+  );
+}
+
+function OwnershipCard({ o }: { o: NonNullable<Company["ownership"]> }) {
+  return (
+    <Card>
+      <SectionTitle>股权结构 · Wikidata</SectionTitle>
+      <div className="space-y-3 text-sm">
+        {o.founders.length > 0 && <div><div className="text-xs text-muted">创始人</div><div className="mt-1 flex flex-wrap gap-1.5">{o.founders.map((n) => <Badge key={n} tone="blue">{n}</Badge>)}</div></div>}
+        {o.parents.length > 0 && <div><div className="text-xs text-muted">母公司 / 控股方</div><div className="mt-1 flex flex-wrap gap-1.5">{o.parents.map((n) => <Badge key={n} tone="amber">{n}</Badge>)}</div></div>}
+        {o.subsidiaries.length > 0 && <div><div className="text-xs text-muted">子公司</div><div className="mt-1 flex flex-wrap gap-1.5">{o.subsidiaries.map((n) => <Badge key={n} tone="green">{n}</Badge>)}</div></div>}
+      </div>
+      <div className="mt-3 text-[11px] text-muted">来源：Wikidata（P112 创始人 / P749 母公司 / P355 子公司）</div>
     </Card>
   );
 }
@@ -109,6 +135,10 @@ export function CompanyView({ c }: { c: Company }) {
       </div>
 
       {c.financials && <FinancialsCard f={c.financials} />}
+
+      {c.priceHistory && c.priceHistory.length > 1 && <PriceChart history={c.priceHistory} currency={c.financials?.currency ?? "CNY"} />}
+
+      {c.ownership && <OwnershipCard o={c.ownership} />}
 
       {c.patents && (
         <Card>
