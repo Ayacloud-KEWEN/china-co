@@ -76,6 +76,7 @@ China MOS 的所有情报数据来自**公开、免费、无需付费 API Key** 
 - **落库**：`industries.trade` = `{ hs, year, exportUSD, topPartners:[{name,valueUSD}] }`。
 - **映射**：`industryMap[slug].hs`（如 NEV → HS 87；电池 → 8507；半导体 → 8542）。
 - **注意**：preview 端点**间歇性只返回全球汇总、不返回伙伴国明细** → 采用「跨运行保留最优伙伴列表」策略。
+- **时间序列**：`getChinaExportSeries(hs, years)` 逐年取（preview 单次仅一个 period）→ `industries.trade.history`，行业页「逐年出口额」柱状图。
 - **示例**：2023 中国车辆(HS 87)出口全球 $192.5B；半导体 $136.3B。
 
 ## 7. OpenStreetMap / Overpass — 城市工业区
@@ -104,6 +105,7 @@ China MOS 的所有情报数据来自**公开、免费、无需付费 API Key** 
   - `NY.GDP.MKTP.CD` GDP 总量、`BX.KLT.DINV.CD.WD` FDI
   - `NE.EXP.GNFS.CD` 出口、`SP.POP.TOTL` 人口
 - **落库**：清空并重写 `indicators` 表，含**最新年份**与**同比**（百分点或 %），带涨跌方向。
+- **时间序列**：`getIndicatorSeries(code, 12)`（`mrv=12`）→ `indicators.series`，首页每个指标卡的近 12 年 sparkline。
 - **示例**：GDP 增速 5.0% (2025)、GDP 总量 $19.50T、出口 $4.11T、人口 1.41B。
 
 ## 10. Yahoo Finance — 上市公司财务
@@ -116,6 +118,7 @@ China MOS 的所有情报数据来自**公开、免费、无需付费 API Key** 
 - **实现**：Node fetch 的 cookie/数据中心校验不稳 → 用 **curl + cookie jar** 实现（`sources/yahoo.ts`）。
 - **提取**：市值、股价、涨跌%、P/E、P/B、EPS、52 周区间、营收(TTM)、营收增速、毛利率、净利率、ROE。
 - **落库**：`companies.financials`；仅上市公司（`ingest.ts` 的 `stockSymbol`：BYD 002594.SZ、CATL 300750.SZ、Mindray 300760.SZ）。
+- **时间序列**：`getPriceHistory(symbol)` 用 v8 chart（`range=5y&interval=1mo`，无需 crumb）取近 5 年月度收盘 → `companies.price_history`，企业页「股价走势」折线图。
 - **坑**：curl 参数 `-o /dev/null` 在 Node 调起的 mingw curl 下会破坏整个流程 → 去掉即成功。
 - **示例**：CATL 市值 ¥1.79T、P/E 22.1、ROE 25.4%；BYD 市值 ¥7,707 亿、营收 ¥7,838 亿。
 - **合规**：页面标注「数据延迟，仅供参考，非投资建议」。
@@ -143,6 +146,7 @@ China MOS 的所有情报数据来自**公开、免费、无需付费 API Key** 
 - **落库**：`fairs` 表（`name` / `website` / `city`）。
 - **展示**：商机中心「重点展会」卡片。
 - **示例**：广交会、进博会、珠海航展、服贸会、北京国际设计周（真实，含官网链接）。
+- **股权/子公司**：`getOwnership(qid)` 取 P112 创始人 / P749 母公司 / P355 子公司 → `companies.ownership`，企业页「股权结构」卡片 + 知识图谱。示例：BYD 创始人吕向阳 + 4 子公司；华为 任正非 + 8 子公司。
 
 ## 14. World Bank Procurement Notices — 国际招标
 
@@ -158,6 +162,12 @@ China MOS 的所有情报数据来自**公开、免费、无需付费 API Key** 
 ## 数据来源与引用
 
 所有摄取数据都保留来源链接写入相应记录（企业 `sources` 字段含维基百科、Wikidata 实体、官网、Google Patents、Yahoo Finance；行业/城市卡片底部标注 OpenAlex / UN Comtrade / OpenStreetMap 来源），满足产品规格「所有 AI 分析必须保留来源引用」的要求。
+
+## 账户与用户数据（非外部源）
+
+账户体系（`organizations` / `users` / `sessions`）与用户数据（`watchlist` / `notes` / `saved_analyses`）
+**不来自外部数据源**，由用户在应用内产生，存于 Postgres。认证为自建会话（Node `scrypt` 哈希 + httpOnly cookie），
+无需任何外部 API Key。详见 [DEVELOPMENT.md](./DEVELOPMENT.md) 阶段七。
 
 ## 尚未接入（下一步候选）
 

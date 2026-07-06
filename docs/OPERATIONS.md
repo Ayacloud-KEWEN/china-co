@@ -13,12 +13,13 @@
 | Web 应用 | Next.js（App Router）SSR + API | standalone `server.js`（PM2 常驻，端口 3200） |
 | 数据库 | PostgreSQL 16 + pgvector | Docker 容器 `china-mos-db`（仅监听 127.0.0.1） |
 | Embedding | transformers.js 本地模型（随 Web 进程） | 无独立进程 |
-| LLM | DeepSeek API（外部） | 需 `DEEPSEEK_API_KEY` |
+| LLM | DeepSeek API（外部） | 需 `DEEPSEEK_API_KEY`；含 RAG 检索 + 工具调用 |
+| 账户 / 多租户 | 自建会话认证（scrypt + `sessions` 表 + cookie） | 随 Web 进程，无独立服务 |
 | 数据摄取 | `db:ingest` / `db:embed`（离线批处理） | 手动或 cron |
 
-外部依赖（均公开、无需付费 key，除 DeepSeek 外）：Wikipedia、Wikidata、OpenAlex、
+外部依赖（均公开、无需付费 key，除 DeepSeek 外）：Wikipedia、Wikidata（含 SPARQL）、OpenAlex、
 UN Comtrade、World Bank、World Bank Procurement、OpenStreetMap/Overpass、Google Patents、
-Yahoo Finance、Frankfurter/ECB、Google News RSS。
+Yahoo Finance、Frankfurter/ECB、Google News RSS。**账户与用户数据（关注/笔记/保存分析）不依赖任何外部服务**。
 
 ---
 
@@ -85,10 +86,15 @@ npm run db:embed      # 摄取后重建 RAG 向量索引（约 10 秒）
   docker exec china-mos-db psql -U chinamos -d chinamos -c \
    "select 'companies',count(*) from companies union all \
     select 'rag_docs',count(*) from rag_docs union all \
-    select 'news',count(*) from news union all select 'fx',count(*) from fx;"
+    select 'users',count(*) from users union all \
+    select 'sessions',count(*) from sessions union all select 'fx',count(*) from fx;"
   ```
 - **RAG 自检**：`curl 'http://127.0.0.1:3200/api/retrieve?q=新能源汽车'` → 应返回 `mode:"vector"` 且有命中。
 - **关键健康指标**：Web 进程存活、DB 可连接、`rag_docs` 行数=文档数（当前 60）、`/api/retrieve` 返回 vector。
+- **过期会话清理**（可选，加进每日 cron）：
+  ```bash
+  docker exec china-mos-db psql -U chinamos -d chinamos -c "delete from sessions where expires_at < now();"
+  ```
 
 ---
 
@@ -132,7 +138,9 @@ docker exec -i china-mos-db pg_restore -U chinamos -d chinamos --clean --if-exis
 
 - **数据库仅本机**：Postgres 容器只映射 `127.0.0.1`，不对公网开放。
 - **密钥管理**：`DEEPSEEK_API_KEY` 只放服务器环境变量；定期轮换。
-- **无用户数据**：当前平台不采集终端用户 PII；如未来加登录/CRM，需补隐私合规。
+- **账户安全**：密码用 Node `scrypt` **加盐哈希**存储（`users.password_hash`，非明文）；会话为随机 32 字节 token 存 `sessions` 表，cookie 为 `httpOnly` + `sameSite=lax`，生产自动 `secure`（仅 HTTPS）。**务必在 HTTPS 下运行**（CloudPanel Let's Encrypt）。
+- **用户数据 / PII**：现采集账户邮箱、姓名、团队名与用户笔记等 —— 属个人数据，需遵守隐私合规（GDPR 等）：提供注销/导出、最小化收集、明确用途。备份含这些数据，注意加密与访问控制。
+- **多租户隔离**：用户数据按 `orgId`/`userId` 过滤；「共享给团队」仅在同 `orgId` 内可见。变更查询时务必保留这些过滤条件。
 - **出站合规**：摄取只读取公开数据并保留来源；遵守各源使用条款（如 OSM ODbL 署名、Wikidata CC0、Yahoo 仅供参考）。
 - **AI 输出**：属生成内容，运营应保留「仅供参考、需核实」的提示，尤其涉及财务/政策/投资。
 
@@ -149,6 +157,9 @@ docker exec -i china-mos-db pg_restore -U chinamos -d chinamos --clean --if-exis
 | 某数据源今天没更新 | 该源限流（尤其 Patents/GDELT）；下次成功运行自动补，无需干预 |
 | 摄取报错中断 | 查 `logs/ingest.log`；幂等，可直接重跑 `npm run db:ingest` |
 | 内存偏高 | Embedding 模型常驻（正常）；如紧张可增内存或改用更小模型 |
+| 登录后立刻掉登录 / cookie 不生效 | 确认走 HTTPS（生产 cookie 为 `secure`）；反代是否透传；系统时间是否正确（会话按 `expires_at`） |
+| 注册/登录报错 | 查 `users`/`sessions` 表是否存在（`drizzle-kit migrate` 是否应用 `0008`）；`pm2 logs` 看 Server Action 错误 |
+| 「保存分析/关注」提示请先登录 | 未登录或会话过期；重新登录。数据按用户隔离，换账户看不到彼此私有数据（团队共享除外） |
 
 ---
 
@@ -166,8 +177,14 @@ docker exec -i china-mos-db pg_restore -U chinamos -d chinamos --clean --if-exis
 
 ## 11. 扩容与演进（路线图）
 
-- **鉴权/多租户**：NextAuth + 组织/团队 + 审批流（规格中的咨询工作台完整化）。
-- **报告导出**：接真实 PDF/Word/PPT 导出。
-- **检索增强**：混合检索（向量+词法加权）、命中高亮、AI 工具调用（精确取数）。
+已完成：✅ 鉴权 + 多租户、✅ 关注/笔记/保存分析、✅ Word/PDF 导出、✅ AI 工具调用、
+✅ 时间序列图表、✅ 对比分析、✅ 股权图谱、✅ 真实地图。
+
+后续：
+
+- **团队协作**：邀请成员、角色权限、审批流（咨询工作台完整化）；PPT 导出。
+- **商业化**：订阅计费（Stripe）+ AI 用量计量/限流。
+- **政策提醒**：关键词订阅 → 邮件推送（需接邮件服务如 Resend）。
+- **检索增强**：混合检索（向量+词法加权）、命中高亮、rerank。
 - **更多真实源**：供应商/政策实时化、上市公司年报 PDF 解析、各省市开放数据。
 - **数据库托管**：数据量增大后可迁移到托管 Postgres（Neon/Supabase，改 `DATABASE_URL` 即可）。

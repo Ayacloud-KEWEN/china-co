@@ -132,6 +132,9 @@ DATABASE_URL=postgres://chinamos:chinamos@localhost:5544/chinamos
 ```
 
 > 生产建议把 Postgres 密码改强（改 `docker-compose.yml` 的 `POSTGRES_PASSWORD` 与此处一致）。
+>
+> **账户体系无需额外环境变量**：认证为自建会话（DB + httpOnly cookie），密码用 Node `scrypt` 哈希。
+> 但生产会话 cookie 为 `secure`（仅 HTTPS 下发送），因此**务必完成第 10 步的 Let's Encrypt HTTPS**，否则登录后 cookie 不生效。
 
 ---
 
