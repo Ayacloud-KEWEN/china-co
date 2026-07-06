@@ -82,6 +82,17 @@ mkdir -p .next/standalone/.next
 cp -r .next/static .next/standalone/.next/static
 [ -d public ] && cp -r public .next/standalone/public || true
 
+# Next's dependency tracer can miss native shared libraries (e.g. onnxruntime's
+# libonnxruntime.so). Copy the full native packages into the standalone bundle
+# so the local embedding model (transformers.js) loads at runtime.
+for pkg in onnxruntime-node @xenova/transformers sharp; do
+  if [ -d "node_modules/$pkg" ]; then
+    rm -rf ".next/standalone/node_modules/$pkg"
+    mkdir -p ".next/standalone/node_modules/$(dirname "$pkg")"
+    cp -r "node_modules/$pkg" ".next/standalone/node_modules/$pkg"
+  fi
+done
+
 say "Building RAG vector index (downloads embedding model on first run)…"
 npm run db:embed
 
