@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   Home, Search, Building2, Factory, MapPin, Truck, ScrollText, BookOpen,
-  Network, MessageSquare, FileText, Users, Moon, Sun, Globe, Menu, X, Briefcase, GitCompare,
+  Network, MessageSquare, FileText, Users, Moon, Sun, Globe, Menu, X, Briefcase, GitCompare, User, LogOut, Star,
 } from "lucide-react";
 import { useT, useLang, langLabels, Lang } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
@@ -35,7 +35,9 @@ const groups: { label: string; items: { href: string; key: string; icon: typeof 
   ]},
 ];
 
-export function Shell({ children }: { children: React.ReactNode }) {
+type Account = { name: string; email: string } | null;
+
+export function Shell({ children, account, logout }: { children: React.ReactNode; account?: Account; logout?: () => Promise<void> }) {
   const t = useT();
   const path = usePathname();
   const [open, setOpen] = useState(false);
@@ -78,23 +80,42 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar onMenu={() => setOpen((o) => !o)} menuOpen={open} />
+        <Topbar onMenu={() => setOpen((o) => !o)} menuOpen={open} account={account} logout={logout} />
         <main className="mx-auto w-full max-w-7xl flex-1 px-5 py-6 lg:px-8">{children}</main>
       </div>
     </div>
   );
 }
 
-function Topbar({ onMenu, menuOpen }: { onMenu: () => void; menuOpen: boolean }) {
+function Topbar({ onMenu, menuOpen, account, logout }: { onMenu: () => void; menuOpen: boolean; account?: Account; logout?: () => Promise<void> }) {
   const { theme, toggle } = useTheme();
   const { lang, setLang } = useLang();
   const [langOpen, setLangOpen] = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b bg-surface/80 px-5 backdrop-blur lg:px-8">
       <button className="lg:hidden" onClick={onMenu}>{menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}</button>
       <div className="hidden text-sm text-muted lg:block">AI 驱动的企业级中国市场进入与战略咨询操作系统</div>
       <div className="flex items-center gap-2">
+        {account ? (
+          <div className="relative">
+            <button onClick={() => setUserOpen((o) => !o)} className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm hover:bg-background">
+              <User className="h-4 w-4" /> <span className="max-w-[120px] truncate">{account.name}</span>
+            </button>
+            {userOpen && (
+              <div className="absolute right-0 mt-1 w-52 rounded-lg border bg-surface p-1 shadow-lg">
+                <div className="border-b px-3 py-2 text-xs text-muted">{account.email}</div>
+                <Link href="/me" onClick={() => setUserOpen(false)} className="flex items-center gap-2 rounded px-3 py-1.5 text-sm hover:bg-background"><Star className="h-4 w-4" /> 我的空间</Link>
+                <form action={logout}>
+                  <button type="submit" className="flex w-full items-center gap-2 rounded px-3 py-1.5 text-left text-sm text-red-500 hover:bg-background"><LogOut className="h-4 w-4" /> 退出登录</button>
+                </form>
+              </div>
+            )}
+          </div>
+        ) : (
+          <Link href="/login" className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white hover:opacity-90">登录</Link>
+        )}
         <div className="relative">
           <button onClick={() => setLangOpen((o) => !o)} className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm hover:bg-background">
             <Globe className="h-4 w-4" /> {langLabels[lang]}

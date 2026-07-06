@@ -3,9 +3,11 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useState } from "react";
-import { Send, Sparkles, Loader2, Database, FileText, Printer } from "lucide-react";
+import { Send, Sparkles, Loader2, Database, FileText, Printer, Bookmark, Check } from "lucide-react";
 import Link from "next/link";
+import { useTransition } from "react";
 import { useLang, useT } from "@/lib/i18n";
+import { saveAnalysis } from "@/app/actions/user-data";
 
 type Mode = "search" | "consultant" | "report" | "company" | "playbook";
 
@@ -99,6 +101,21 @@ function printPdf(title: string, markdown: string) {
   <script>window.onload=function(){setTimeout(function(){window.print()},300)}</script>
 </body></html>`);
   w.document.close();
+}
+
+function SaveAnalysisButton({ title, mode, content }: { title: string; mode: string; content: string }) {
+  const [pending, start] = useTransition();
+  const [state, setState] = useState<"idle" | "saved" | "login">("idle");
+  return (
+    <button
+      onClick={() => start(async () => { const r = await saveAnalysis(title, mode, content); setState(r?.error ? "login" : "saved"); })}
+      disabled={pending}
+      className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs hover:bg-background"
+    >
+      {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : state === "saved" ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Bookmark className="h-3.5 w-3.5" />}
+      {state === "saved" ? "已保存" : state === "login" ? "请先登录" : "保存分析"}
+    </button>
+  );
 }
 
 export function AiPanel({
@@ -209,6 +226,7 @@ export function AiPanel({
                 <button onClick={() => printPdf(title, text)} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs hover:bg-background">
                   <Printer className="h-3.5 w-3.5" /> 导出 PDF
                 </button>
+                <SaveAnalysisButton title={text.split("\n").find((l) => l.trim())?.replace(/^#+\s*/, "").slice(0, 80) || title} mode={mode} content={text} />
               </div>
             );
           })()}

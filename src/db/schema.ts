@@ -1,4 +1,68 @@
-import { pgTable, text, integer, jsonb, boolean, serial, vector } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, jsonb, boolean, serial, vector, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+
+// --- Accounts & multi-tenancy ---
+
+export const organizations = pgTable("organizations", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  name: text("name").notNull(),
+  orgId: integer("org_id").notNull(),
+  role: text("role").notNull().default("member"), // owner | member
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const sessions = pgTable("sessions", {
+  token: text("token").primaryKey(),
+  userId: integer("user_id").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
+// --- User data (per-user, org-scoped) ---
+
+export const watchlist = pgTable("watchlist", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  orgId: integer("org_id").notNull(),
+  entityType: text("entity_type").notNull(), // company | industry | city
+  entitySlug: text("entity_slug").notNull(),
+  label: text("label").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => [uniqueIndex("watch_uniq").on(t.userId, t.entityType, t.entitySlug)]);
+
+export const notes = pgTable("notes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  orgId: integer("org_id").notNull(),
+  entityType: text("entity_type").notNull(),
+  entitySlug: text("entity_slug").notNull(),
+  body: text("body").notNull(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (t) => [uniqueIndex("note_uniq").on(t.userId, t.entityType, t.entitySlug)]);
+
+export const savedAnalyses = pgTable("saved_analyses", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  orgId: integer("org_id").notNull(),
+  authorName: text("author_name").notNull(),
+  title: text("title").notNull(),
+  mode: text("mode").notNull(),
+  content: text("content").notNull(),
+  shared: boolean("shared").notNull().default(false), // shared with the org
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type User = typeof users.$inferSelect;
+export type Watchlist = typeof watchlist.$inferSelect;
+export type Note = typeof notes.$inferSelect;
+export type SavedAnalysis = typeof savedAnalyses.$inferSelect;
+
 
 // Trilingual text stored as JSONB: { zh, en, fr }
 type I18nText = { zh: string; en: string; fr: string };
