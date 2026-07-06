@@ -73,7 +73,8 @@ if [ "$FIRST" = 1 ] || [ "$REFRESH" = 1 ]; then
   npm run db:ingest
 fi
 
-say "Building…"
+say "Building… (clean .next first to avoid stale manifest/static mismatch)"
+rm -rf .next
 npm run build
 
 say "Building RAG vector index (downloads embedding model on first run)…"
