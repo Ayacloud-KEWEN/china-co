@@ -3,6 +3,7 @@
 import { useLang } from "@/lib/i18n";
 import { PageHeader, Card, Badge, Stat, SectionTitle } from "@/components/ui";
 import { AiPanel } from "@/components/ai-panel";
+import { MapEmbed } from "@/components/map-embed";
 import type { City } from "@/db/schema";
 
 export function CityView({ c }: { c: City }) {
@@ -19,6 +20,18 @@ export function CityView({ c }: { c: City }) {
         <Card><SectionTitle>支柱产业</SectionTitle><div className="flex flex-wrap gap-2">{c.pillars.map((p) => <Badge key={p} tone="blue">{p}</Badge>)}</div></Card>
         <Card><SectionTitle>代表企业</SectionTitle><div className="flex flex-wrap gap-2">{c.leaders.map((l) => <Badge key={l} tone="green">{l}</Badge>)}</div></Card>
       </div>
+
+      {c.geo && c.pois && c.pois.length > 0 && (
+        <Card>
+          <SectionTitle>工业区分布图 · OpenStreetMap</SectionTitle>
+          <MapEmbed
+            center={[c.geo.lat, c.geo.lon]}
+            zoom={11}
+            markers={c.pois.map((p) => ({ lat: p.lat, lon: p.lon, label: p.name, sub: c.name }))}
+          />
+          <div className="mt-2 text-[11px] text-muted">© OpenStreetMap contributors · 标记为库内真实工业区/园区坐标</div>
+        </Card>
+      )}
 
       {c.pois && c.pois.length > 0 && (
         <Card>

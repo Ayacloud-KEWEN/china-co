@@ -1,9 +1,10 @@
 import { deepseek } from "@ai-sdk/deepseek";
 import {
   streamText, convertToModelMessages, createUIMessageStream,
-  createUIMessageStreamResponse, type UIMessage,
+  createUIMessageStreamResponse, stepCountIs, type UIMessage,
 } from "ai";
 import { retrieve } from "@/lib/rag/retrieve";
+import { ragTools } from "@/lib/rag/tools";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -80,11 +81,18 @@ ${ragContext}
       if (ragSources.length) {
         writer.write({ type: "data-sources", data: ragSources });
       }
+      const useTools = RAG_MODES.has(mode);
       const result = streamText({
         model: deepseek("deepseek-chat"),
-        system,
+        system: useTools
+          ? `${system}
+
+你可以调用工具从数据库获取**精确**结构化数据（企业财务、行业贸易、宏观指标、汇率、省级GDP）。
+遇到需要精确数值的问题（如某公司的市盈率、某行业出口额、某省 GDP）时，优先调用工具取准确值，再作答。`
+          : system,
         messages: await convertToModelMessages(messages),
         temperature: 0.5,
+        ...(useTools ? { tools: ragTools(), stopWhen: stepCountIs(5) } : {}),
       });
       writer.merge(result.toUIMessageStream());
     },

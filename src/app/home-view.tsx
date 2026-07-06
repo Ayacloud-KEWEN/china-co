@@ -5,7 +5,8 @@ import { useLang, useT } from "@/lib/i18n";
 import { AiPanel } from "@/components/ai-panel";
 import { Card, SectionTitle, Stat, Badge } from "@/components/ui";
 import { ChinaMap } from "@/components/china-map";
-import type { News, Indicator, Industry, Company, Policy, Playbook, Fx } from "@/db/schema";
+import { MapEmbed } from "@/components/map-embed";
+import type { News, Indicator, Industry, Company, Policy, Playbook, Fx, City } from "@/db/schema";
 
 function Sparkline({ data, up }: { data: number[]; up: boolean }) {
   if (data.length < 2) return null;
@@ -21,12 +22,15 @@ function Sparkline({ data, up }: { data: number[]; up: boolean }) {
 
 const curFlag: Record<string, string> = { EUR: "🇪🇺", USD: "🇺🇸", GBP: "🇬🇧", JPY: "🇯🇵" };
 
-export function HomeView({ news, indicators, industries, companies, policies, playbooks, fx }: {
+export function HomeView({ news, indicators, industries, companies, policies, playbooks, fx, cities }: {
   news: News[]; indicators: Indicator[]; industries: Industry[];
-  companies: Company[]; policies: Policy[]; playbooks: Playbook[]; fx: Fx[];
+  companies: Company[]; policies: Policy[]; playbooks: Playbook[]; fx: Fx[]; cities: City[];
 }) {
   const t = useT();
   const { lang } = useLang();
+  const cityMarkers = cities
+    .filter((c) => c.geo)
+    .map((c) => ({ lat: c.geo!.lat, lon: c.geo!.lon, label: c.name, sub: `${c.pois?.length ?? 0} 个工业区 · GDP ${c.gdp}` }));
 
   return (
     <div className="space-y-8">
@@ -85,7 +89,11 @@ export function HomeView({ news, indicators, industries, companies, policies, pl
         </Card>
         <Card>
           <SectionTitle>{t("home.map")}</SectionTitle>
-          <ChinaMap />
+          {cityMarkers.length > 0 ? (
+            <MapEmbed center={[32, 110]} zoom={4} markers={cityMarkers} height={300} />
+          ) : (
+            <ChinaMap />
+          )}
         </Card>
       </div>
 

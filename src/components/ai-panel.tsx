@@ -3,7 +3,7 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useState } from "react";
-import { Send, Sparkles, Loader2, Database } from "lucide-react";
+import { Send, Sparkles, Loader2, Database, FileText, Printer } from "lucide-react";
 import Link from "next/link";
 import { useLang, useT } from "@/lib/i18n";
 
@@ -49,6 +49,56 @@ function renderText(text: string) {
       </p>
     );
   });
+}
+
+// --- Report export helpers ---
+function mdToHtml(md: string): string {
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const bold = (s: string) => esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  const html: string[] = []; let inList = false;
+  for (const raw of md.split("\n")) {
+    const line = raw.replace(/\r$/, "");
+    const h = line.match(/^(#{1,4})\s+(.*)$/);
+    const li = line.match(/^\s*[-*]\s+(.*)$/);
+    if (li) { if (!inList) { html.push("<ul>"); inList = true; } html.push(`<li>${bold(li[1])}</li>`); continue; }
+    if (inList) { html.push("</ul>"); inList = false; }
+    if (h) { html.push(`<h${h[1].length}>${bold(h[2])}</h${h[1].length}>`); continue; }
+    if (line.trim() === "") { html.push(""); continue; }
+    html.push(`<p>${bold(line)}</p>`);
+  }
+  if (inList) html.push("</ul>");
+  return html.join("\n");
+}
+
+async function downloadWord(title: string, markdown: string) {
+  const res = await fetch("/api/export/docx", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ title, markdown }),
+  });
+  if (!res.ok) return;
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `${title}.docx`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function printPdf(title: string, markdown: string) {
+  const w = window.open("", "_blank");
+  if (!w) return;
+  w.document.write(`<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>${title}</title>
+<style>
+  body{font-family:"Microsoft YaHei","PingFang SC",-apple-system,Arial,sans-serif;max-width:800px;margin:40px auto;padding:0 24px;color:#0f172a;line-height:1.7}
+  h1{font-size:24px;border-bottom:2px solid #1e3a8a;padding-bottom:8px} h2{font-size:19px;margin-top:28px;color:#1e3a8a} h3{font-size:16px} h4{font-size:14px}
+  .brand{text-align:center;color:#888;font-size:12px;margin-bottom:24px} .title{text-align:center;font-size:26px;font-weight:700}
+  ul{padding-left:22px} li{margin:4px 0} @media print{body{margin:0}}
+</style></head><body>
+  <div class="title">${title}</div>
+  <div class="brand">China Market Operating System · ${new Date().toISOString().slice(0, 10)}</div>
+  ${mdToHtml(markdown)}
+  <script>window.onload=function(){setTimeout(function(){window.print()},300)}</script>
+</body></html>`);
+  w.document.close();
 }
 
 export function AiPanel({
@@ -147,6 +197,21 @@ export function AiPanel({
           <div className="space-y-1">
             {m.parts.map((p, i) => (p.type === "text" ? <div key={i}>{renderText(p.text)}</div> : null))}
           </div>
+          {m.role === "assistant" && !busy && (() => {
+            const text = m.parts.filter((p) => p.type === "text").map((p) => (p as { text: string }).text).join("\n");
+            if (text.trim().length < 80) return null;
+            const title = (mode === "report" ? "China MOS 报告" : "China MOS 分析") + ` ${new Date().toISOString().slice(0, 10)}`;
+            return (
+              <div className="mt-3 flex gap-2 border-t pt-3">
+                <button onClick={() => downloadWord(title, text)} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs hover:bg-background">
+                  <FileText className="h-3.5 w-3.5" /> 导出 Word
+                </button>
+                <button onClick={() => printPdf(title, text)} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs hover:bg-background">
+                  <Printer className="h-3.5 w-3.5" /> 导出 PDF
+                </button>
+              </div>
+            );
+          })()}
         </div>
       ))}
 
