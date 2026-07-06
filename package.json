@@ -6,21 +6,41 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:up": "docker compose up -d",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:seed": "tsx src/db/seed.ts",
+    "db:ingest": "tsx src/db/ingest.ts",
+    "db:embed": "tsx src/db/embed.ts",
+    "db:studio": "drizzle-kit studio",
+    "db:setup": "docker compose up -d && drizzle-kit push && tsx src/db/seed.ts && tsx src/db/ingest.ts && tsx src/db/embed.ts"
   },
   "dependencies": {
+    "@ai-sdk/deepseek": "^3.0.2",
+    "@ai-sdk/react": "^4.0.10",
+    "@xenova/transformers": "^2.17.2",
+    "ai": "^7.0.9",
+    "drizzle-orm": "^0.45.2",
+    "lucide-react": "^1.23.0",
     "next": "16.2.9",
+    "postgres": "^3.4.9",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^17.4.2",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
+    "tsx": "^4.22.4",
     "typescript": "^5"
   }
 }

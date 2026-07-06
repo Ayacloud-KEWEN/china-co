@@ -1,0 +1,23 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: china-mos-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: chinamos
+      POSTGRES_PASSWORD: chinamos
+      POSTGRES_DB: chinamos
+    ports:
+      # Bind to localhost only — never expose Postgres to the public network.
+      - "127.0.0.1:5544:5432"
+    volumes:
+      - china-mos-pgdata:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chinamos -d chinamos"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  china-mos-pgdata:
