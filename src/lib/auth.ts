@@ -36,15 +36,21 @@ async function createSession(userId: number) {
 }
 
 export async function getCurrentUser(): Promise<User | null> {
-  const jar = await cookies();
-  const token = jar.get(COOKIE)?.value;
-  if (!token) return null;
-  const rows = await db.select({ user: schema.users })
-    .from(schema.sessions)
-    .innerJoin(schema.users, eq(schema.sessions.userId, schema.users.id))
-    .where(and(eq(schema.sessions.token, token), gt(schema.sessions.expiresAt, new Date())))
-    .limit(1);
-  return rows[0]?.user ?? null;
+  // Runs in the ROOT layout on every request (incl. error/404 pages), so it must
+  // never throw — a DB hiccup or missing table would otherwise 500 the whole site.
+  try {
+    const jar = await cookies();
+    const token = jar.get(COOKIE)?.value;
+    if (!token) return null;
+    const rows = await db.select({ user: schema.users })
+      .from(schema.sessions)
+      .innerJoin(schema.users, eq(schema.sessions.userId, schema.users.id))
+      .where(and(eq(schema.sessions.token, token), gt(schema.sessions.expiresAt, new Date())))
+      .limit(1);
+    return rows[0]?.user ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function logout() {
