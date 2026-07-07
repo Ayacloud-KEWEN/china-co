@@ -83,14 +83,11 @@ npm run db:embed
 say "Starting/restarting with PM2 ($APP_NAME on $BIND_HOST:$PORT via next start)…"
 command -v pm2 >/dev/null || npm i -g pm2
 export NODE_ENV=production   # runtime only
-if pm2 describe "$APP_NAME" >/dev/null 2>&1; then
-  pm2 restart "$APP_NAME" --update-env
-else
-  # `next start` reads PORT/HOSTNAME from env; uses full node_modules (reliable
-  # static serving + native embedding libs).
-  PORT="$PORT" HOSTNAME="$BIND_HOST" MODEL_CACHE_DIR="$MODEL_CACHE_DIR" NODE_ENV=production \
-    pm2 start npm --name "$APP_NAME" -- run start
-fi
+# Always recreate with an explicit --cwd so pm2 can't resurrect a stale working
+# directory (which would make `next start` serve an OLD .next → static 500s).
+pm2 delete "$APP_NAME" >/dev/null 2>&1 || true
+PORT="$PORT" HOSTNAME="$BIND_HOST" MODEL_CACHE_DIR="$MODEL_CACHE_DIR" NODE_ENV=production \
+  pm2 start npm --name "$APP_NAME" --cwd "$ROOT" -- run start
 pm2 save
 
 say "Smoke test…"
