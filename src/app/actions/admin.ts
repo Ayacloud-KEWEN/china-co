@@ -5,6 +5,7 @@ import { spawn } from "node:child_process";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { requireAdmin } from "@/lib/admin";
+import { lookupCityByName } from "@/lib/sources/wikidata-sparql";
 
 type Result = { error?: string; ok?: boolean };
 
@@ -292,6 +293,32 @@ export async function deleteSupplier(slug: string) {
   await db.delete(schema.suppliers).where(eq(schema.suppliers.slug, slug));
   revalidatePath("/admin/suppliers");
   revalidatePath("/supply-chain");
+}
+
+// ========================= City wizard: Wikidata lookup =========================
+
+type CityPrefill = { slug: string; name: string; nameEn: string; gdp: string; pop: string };
+
+const fmtPop = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}K` : String(n));
+// Only trust a GDP figure large enough to plausibly be CNY for a real city.
+const fmtGdpCny = (n: number): string =>
+  n < 1e11 ? "" : n >= 1e12 ? `¥${(n / 1e12).toFixed(2)}T` : `¥${Math.round(n / 1e8).toLocaleString()}亿`;
+
+export async function lookupCity(name: string): Promise<{ data?: CityPrefill; error?: string }> {
+  await requireAdmin();
+  if (!name.trim()) return { error: "请输入城市名" };
+  const r = await lookupCityByName(name.trim());
+  if (!r) return { error: "在 Wikidata 未找到该城市，请换个名称或从空白开始" };
+  const nameZh = r.nameZh.replace(/市$/, "") || name.trim(); // 深圳市 → 深圳
+  return {
+    data: {
+      slug: (r.nameEn || nameZh).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+      name: nameZh,
+      nameEn: r.nameEn,
+      gdp: r.gdpCny ? fmtGdpCny(r.gdpCny) : "",
+      pop: r.population ? fmtPop(r.population) : "",
+    },
+  };
 }
 
 // ========================= Ops: rebuild vector index =========================

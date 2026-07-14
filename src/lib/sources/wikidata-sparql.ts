@@ -77,6 +77,49 @@ export async function getCityStats(qid: string): Promise<CityStats | null> {
   return { population: pop > 0 ? pop : null, gdpCny: gdp > 0 ? gdp : null };
 }
 
+export type CityLookup = { qid: string; nameZh: string; nameEn: string; population: number | null; gdpCny: number | null };
+
+// Resolve a city by (Chinese or English) name via the Wikidata search API, then
+// SPARQL the candidates for the one that is actually a city (P31/P279* Q515) with
+// the largest population — avoids matching a same-named person/company/district.
+export async function lookupCityByName(name: string): Promise<CityLookup | null> {
+  const searchUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(name)}&language=zh&uselang=zh&format=json&type=item&limit=5&origin=*`;
+  let ids: string[] = [];
+  try {
+    const res = await fetch(searchUrl, { headers: { "User-Agent": UA } });
+    if (!res.ok) return null;
+    const j = await res.json();
+    ids = (j.search ?? []).map((s: { id: string }) => s.id).filter(Boolean);
+  } catch {
+    return null;
+  }
+  if (!ids.length) return null;
+
+  const values = ids.map((id) => `wd:${id}`).join(" ");
+  const q = `SELECT ?c ?zh ?en (MAX(?pop) AS ?p) (MAX(?gdp) AS ?g) WHERE {
+    VALUES ?c { ${values} }
+    ?c wdt:P31/wdt:P279* wd:Q515.
+    OPTIONAL { ?c wdt:P1082 ?pop. }
+    OPTIONAL { ?c wdt:P2131 ?gdp. }
+    OPTIONAL { ?c rdfs:label ?zh. FILTER(LANG(?zh)="zh") }
+    OPTIONAL { ?c rdfs:label ?en. FILTER(LANG(?en)="en") }
+  } GROUP BY ?c ?zh ?en`;
+  const rows = await sparql(q);
+  if (!rows || !rows.length) return null;
+
+  // Prefer the most populous matching city.
+  const best = rows
+    .map((r) => ({
+      qid: (r.c?.value ?? "").split("/").pop() ?? "",
+      nameZh: r.zh?.value ?? "",
+      nameEn: r.en?.value ?? "",
+      population: Number(r.p?.value ?? 0) || null,
+      gdpCny: Number(r.g?.value ?? 0) || null,
+    }))
+    .sort((a, b) => (b.population ?? 0) - (a.population ?? 0))[0];
+  return best?.qid ? best : null;
+}
+
 export type Fair = { name: string; website: string; city: string };
 
 // Q57305 = trade fair; P17 = country China (Q148). Prefer entries with a website.
