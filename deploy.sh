@@ -9,6 +9,12 @@
 #
 # Env (override as needed):
 #   APP_NAME (china-mos)  PORT (3200)  BIND_HOST (127.0.0.1)  MODEL_CACHE_DIR (<root>/.model-cache)
+#
+# .env.local must contain (see .env.local.example):
+#   DATABASE_URL, DEEPSEEK_API_KEY, and ADMIN_EMAILS (comma-separated emails
+#   granted access to the /admin console). deploy.sh sources .env.local and
+#   recreates the PM2 process, so these are picked up automatically — no need
+#   to run `pm2 restart --update-env` yourself.
 
 set -euo pipefail
 
@@ -48,6 +54,13 @@ export HOSTNAME="$BIND_HOST"   # Next standalone server binds to $HOSTNAME:$PORT
 # skip devDependencies (drizzle-kit, tsx, tailwindcss, typescript) which the
 # build + db scripts need. NODE_ENV=production is set only for the PM2 runtime.
 unset NODE_ENV
+
+# The /admin console is gated on ADMIN_EMAILS (or users.is_admin). Warn early if
+# it's unset — the deploy still succeeds, but nobody could reach the console.
+if [ -z "${ADMIN_EMAILS:-}" ]; then
+  printf '\033[1;33m⚠ ADMIN_EMAILS is not set in .env.local — the /admin console will be inaccessible.\033[0m\n'
+  printf '\033[1;33m  Add e.g. ADMIN_EMAILS=you@example.com and re-run, or promote a user via users.is_admin.\033[0m\n'
+fi
 
 say "Installing dependencies (incl. dev — needed for build + db tooling)…"
 npm ci --include=dev
