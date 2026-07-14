@@ -59,6 +59,24 @@ export async function getProvinceGDP(limit = 15): Promise<Province[] | null> {
     .map((p, i) => ({ ...p, rank: i + 1 }));
 }
 
+export type CityStats = { population: number | null; gdpCny: number | null };
+
+// Population (P1082) and nominal GDP (P2131) for a city QID. Takes MAX to collapse
+// point-in-time values. GDP units on Wikidata are inconsistent across cities, so
+// the caller guards the magnitude before trusting it; population is a plain count.
+export async function getCityStats(qid: string): Promise<CityStats | null> {
+  const q = `SELECT (MAX(?pop) AS ?maxPop) (MAX(?gdp) AS ?maxGdp) WHERE {
+    OPTIONAL { wd:${qid} wdt:P1082 ?pop. }
+    OPTIONAL { wd:${qid} wdt:P2131 ?gdp. }
+  }`;
+  const rows = await sparql(q);
+  if (!rows || !rows.length) return null;
+  const r = rows[0];
+  const pop = Number(r.maxPop?.value ?? 0);
+  const gdp = Number(r.maxGdp?.value ?? 0);
+  return { population: pop > 0 ? pop : null, gdpCny: gdp > 0 ? gdp : null };
+}
+
 export type Fair = { name: string; website: string; city: string };
 
 // Q57305 = trade fair; P17 = country China (Q148). Prefer entries with a website.

@@ -32,7 +32,9 @@ Next.js 16（App Router）+ PostgreSQL/pgvector + Drizzle + DeepSeek，14 个免
 
 **14 个真实数据源**（全部免 key，摄取进库）：Wikipedia、Wikidata(实体+SPARQL)、Google News、GDELT、
 OpenAlex、UN Comtrade、OpenStreetMap/Overpass、Google Patents、World Bank、World Bank Procurement、
-Yahoo Finance、Frankfurter/ECB。（供应商/部分政策/新闻仍为 `data.ts` 种子数据。）
+Yahoo Finance、Frankfurter/ECB。
+
+**数据真实性现状**：新闻、宏观指标、汇率、省份 GDP、展会、招标全为真实摄取；企业概述/成立/员工/专利/财务/股价/股权、行业论文+贸易、城市地图 POI 均真实；**城市人口/GDP**（Wikidata，GDP 有单位护栏、缺失则保留种子）、**企业 growth**（Yahoo 营收增速，限上市）已真实化。**仍为种子/后台维护**：供应商、政策（无免费 API，改由 `/admin` 人工维护）、攻略（编辑内容），以及企业 `riskScore`（自定义评分）、行业 `marketSize`、城市 `pillars`/`leaders` 等无干净免费源的字段。
 
 **能力**：
 - 向量 RAG（pgvector + 本地 `multilingual-e5-small` embedding）+ **AI 工具调用**（精确查库）+ 引用来源

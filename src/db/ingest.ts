@@ -15,7 +15,7 @@ import { getPatents } from "../lib/sources/googlepatents";
 import { getIndicator, getIndicatorSeries, fmtPercent, fmtUSD, fmtCount } from "../lib/sources/worldbank";
 import { getFinancials, getPriceHistory } from "../lib/sources/yahoo";
 import { getFxSeries } from "../lib/sources/frankfurter";
-import { getProvinceGDP, getTradeFairs, getOwnership } from "../lib/sources/wikidata-sparql";
+import { getProvinceGDP, getTradeFairs, getOwnership, getCityStats } from "../lib/sources/wikidata-sparql";
 import { getTenders } from "../lib/sources/wbprocurement";
 
 type Source = { name: string; url: string };
@@ -48,6 +48,26 @@ const cityMap: Record<string, Bbox> = {
   hangzhou: [30.15, 120.00, 30.40, 120.35],
   suzhou: [31.15, 120.40, 31.45, 120.95],
 };
+
+// City → Wikidata QID for population / GDP (getCityStats).
+const cityQid: Record<string, string> = {
+  shenzhen: "Q15174", shanghai: "Q8686", hangzhou: "Q4970", suzhou: "Q42622",
+};
+
+// Format a raw population count → "17.7M" / "990K".
+function fmtPop(n: number): string {
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
+  if (n >= 1e3) return `${Math.round(n / 1e3)}K`;
+  return String(n);
+}
+// Format a raw CNY GDP figure → "¥3.46T" / "¥8,900亿". Returns null if the value
+// looks too small to be a tier-1/2 city's GDP in CNY (likely a foreign-currency
+// or stale Wikidata value) — the caller then keeps the seeded figure.
+function fmtCityGdpCny(n: number): string | null {
+  if (n < 1e11) return null; // < ¥100B — implausible for these cities; don't trust the unit
+  if (n >= 1e12) return `¥${(n / 1e12).toFixed(2)}T`;
+  return `¥${Math.round(n / 1e8).toLocaleString()}亿`;
+}
 
 const COMTRADE_YEAR = 2023;
 // Company → Google Patents assignee string.
@@ -124,9 +144,12 @@ async function main() {
 
     const sources = dedupeSources([...extraSources, ...c.sources]);
 
+    // Real YoY growth from Yahoo revenue growth (listed only); else keep seed.
+    const growth = financials?.revenueGrowth != null ? Math.round(financials.revenueGrowth) : c.growth;
+
     await db.update(schema.companies)
       .set({
-        overview, founded, employees, sources,
+        overview, founded, employees, sources, growth,
         patents: patents ?? c.patents, financials: financials ?? c.financials,
         priceHistory: priceHistory ?? c.priceHistory, ownership: ownership ?? c.ownership,
       })
@@ -172,19 +195,27 @@ async function main() {
     await sleep(600); // be polite to Comtrade
   }
 
-  console.log("→ Enriching cities from OpenStreetMap (Overpass)…");
+  console.log("→ Enriching cities from OpenStreetMap (Overpass) + Wikidata (pop/GDP)…");
   const cityRows = await db.select().from(schema.cities);
   for (const city of cityRows) {
     const bbox = cityMap[city.slug];
     if (!bbox) continue;
     const sites = await getIndustrialSites(bbox, 8);
+
+    // Real population / GDP from Wikidata (fall back to seeded values).
+    const qid = cityQid[city.slug];
+    const stats = qid ? await getCityStats(qid) : null;
+    const pop = stats?.population ? fmtPop(stats.population) : city.pop;
+    const gdp = stats?.gdpCny ? (fmtCityGdpCny(stats.gdpCny) ?? city.gdp) : city.gdp;
+
+    const update: Partial<typeof schema.cities.$inferInsert> = { pop, gdp };
     if (sites.length) {
-      const geo = { lat: (bbox[0] + bbox[2]) / 2, lon: (bbox[1] + bbox[3]) / 2 };
-      await db.update(schema.cities)
-        .set({ geo, pois: sites.map((s) => ({ name: s.name, lat: s.lat, lon: s.lon })) })
-        .where(eq(schema.cities.slug, city.slug));
+      update.geo = { lat: (bbox[0] + bbox[2]) / 2, lon: (bbox[1] + bbox[3]) / 2 };
+      update.pois = sites.map((s) => ({ name: s.name, lat: s.lat, lon: s.lon }));
     }
-    console.log(`  ✓ ${city.slug.padEnd(9)} OSM industrial sites: ${sites.length}`);
+    await db.update(schema.cities).set(update).where(eq(schema.cities.slug, city.slug));
+
+    console.log(`  ✓ ${city.slug.padEnd(9)} OSM sites: ${sites.length} · pop ${pop}${stats?.population ? " (WD)" : ""} · gdp ${gdp}${stats?.gdpCny && fmtCityGdpCny(stats.gdpCny) ? " (WD)" : ""}`);
     await sleep(1200); // Overpass fair-use
   }
 
