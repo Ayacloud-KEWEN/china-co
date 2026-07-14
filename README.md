@@ -96,7 +96,9 @@ Comtrade、OSM）写入相应记录，满足「AI 分析保留来源引用」要
 **摄取管线是幂等且容错的**：任一数据源临时失败/限流时保留库中已有数据，反复运行会累积各源的最优结果
 （例如 Comtrade 的出口市场、Overpass 的工业区在多次运行间取最优）。
 
-📖 详细文档：**[数据源说明](docs/DATA_SOURCES.md)** · **[开发过程](docs/DEVELOPMENT.md)** · **[运营手册](docs/OPERATIONS.md)** · **[OVH+CloudPanel 部署](docs/DEPLOYMENT_OVH_CLOUDPANEL.md)**
+📖 详细文档：**[接续文档/路线图 ⭐](docs/HANDOFF.md)** · **[数据源说明](docs/DATA_SOURCES.md)** · **[开发过程](docs/DEVELOPMENT.md)** · **[运营手册](docs/OPERATIONS.md)** · **[OVH+CloudPanel 部署](docs/DEPLOYMENT_OVH_CLOUDPANEL.md)**
+
+> **要在新会话继续开发/运营？先读 [docs/HANDOFF.md](docs/HANDOFF.md)** —— 现状、部署已知坑、常见操作、带优先级的路线图，一份就够。
 
 > 生产部署：`next build` + PM2 跑 `next start`；服务器上做完前置步骤后跑 `./deploy.sh --first` 一键部署（详见部署文档）。
 
