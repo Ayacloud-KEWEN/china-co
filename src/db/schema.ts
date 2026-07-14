@@ -15,6 +15,7 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   orgId: integer("org_id").notNull(),
   role: text("role").notNull().default("member"), // owner | member
+  isAdmin: boolean("is_admin").notNull().default(false), // platform admin (backend console)
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -95,6 +96,8 @@ export const companies = pgTable("companies", {
   priceHistory: jsonb("price_history").$type<{ t: string; c: number }[]>(),
   // Ownership from Wikidata: founders / parents / subsidiaries (names).
   ownership: jsonb("ownership").$type<{ founders: string[]; parents: string[]; subsidiaries: string[] }>(),
+  // Leadership: chairman / CEO / founders (name + role). Admin-editable.
+  executives: jsonb("executives").$type<{ name: string; role: string }[]>(),
 });
 
 type PatentPortfolio = {
@@ -145,6 +148,10 @@ export const cities = pgTable("cities", {
   // Enriched from OpenStreetMap / Overpass (nullable until ingested).
   geo: jsonb("geo").$type<Geo>(),
   pois: jsonb("pois").$type<Poi[]>(),
+  // Business-cost signals for market-entry decisions. Admin-editable.
+  officeRent: text("office_rent").notNull().default(""),
+  avgWage: text("avg_wage").notNull().default(""),
+  fdi: text("fdi").notNull().default(""),
 });
 
 export const playbooks = pgTable("playbooks", {
@@ -175,6 +182,12 @@ export const policies = pgTable("policies", {
   impact: text("impact").$type<"高" | "中" | "低">().notNull(),
   title: jsonb("title").$type<I18nText>().notNull(),
   tags: jsonb("tags").$type<string[]>().notNull(),
+  // Enrichment: trilingual summary, original source link, applicable region,
+  // effective date. Admin-editable.
+  summary: jsonb("summary").$type<I18nText>(),
+  sourceUrl: text("source_url").notNull().default(""),
+  region: text("region").notNull().default(""),
+  effectiveDate: text("effective_date").notNull().default(""),
 });
 
 export const news = pgTable("news", {
@@ -182,6 +195,11 @@ export const news = pgTable("news", {
   title: jsonb("title").$type<I18nText>().notNull(),
   source: text("source").notNull(),
   time: text("time").notNull(),
+  // Enrichment: original article link + best-effort entity linking (matched
+  // against known company/industry/city names during ingest).
+  url: text("url").notNull().default(""),
+  entityType: text("entity_type"),   // company | industry | city | null
+  entitySlug: text("entity_slug"),
 });
 
 export const indicators = pgTable("indicators", {

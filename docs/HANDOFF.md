@@ -91,7 +91,9 @@ docker-compose.yml           pgvector 容器 + init.sql 建扩展
 
 ## 6. 常见运营操作
 
-**加一家新企业**（详见 [OPERATIONS](./OPERATIONS.md)）：
+**加一家新企业**（推荐用管理后台）：登录管理员账号 → `/admin/companies` → 新增；行业/城市同理。基础字段即时生效；点「重建向量索引」让其进入 AI 检索。
+
+**加一家新企业（命令行方式，同时补增强数据）**（详见 [OPERATIONS](./OPERATIONS.md)）：
 1. `src/lib/data.ts` 的 `companies` 数组加一条；
 2. `src/db/ingest.ts` 的 `wikiMap`/`patentAssignee`/`stockSymbol` 加映射；
 3. `npm run db:seed && npm run db:ingest && npm run db:embed`（不动用户数据；页面动态读库，无需重启/重构建）。
@@ -103,7 +105,17 @@ docker-compose.yml           pgvector 容器 + init.sql 建扩展
 ## 7. 路线图（带优先级）
 
 ### 一线 · 让产品可运营/可卖
-- [ ] **管理后台（自助录入企业/数据）** ⭐ 推荐先做：网页里增删改企业/行业、一键触发摄取、审核数据，运营不再改 `data.ts`/命令行。直接消除当前"加企业要改代码"的痛点。
+- [x] **管理后台（自助录入企业/数据）** ✅ 已完成：`/admin` 控制台。仪表盘（各表计数）+ **企业/行业/城市/政策/供应商**的增删改查（网页表单，无需改 `data.ts`）+ 一键重建向量索引（`db:embed`）。
+  - **鉴权**：`ADMIN_EMAILS`（逗号分隔邮箱，见 `.env.local.example`）或 `users.is_admin` 字段。生产需在 `.env.local` 设 `ADMIN_EMAILS` 并 `pm2 restart china-mos --update-env`。
+  - **迁移**：`is_admin` 列（`drizzle/0009`）；信息丰富字段（`drizzle/0010`，见下）。生产 `./deploy.sh` 的 `migrate` 会自动应用。
+  - 关键文件：`src/app/admin/*`、`src/app/actions/admin.ts`、`src/lib/admin.ts`。
+  - 增强字段（专利/财务/股价/股权、研究/贸易、地图 POI）仍由 `db:ingest` 填充，后台不编辑；如需让新企业进入 AI 检索，点后台「重建向量索引」。
+- [x] **信息丰富化（第一批）** ✅ 已完成（迁移 `drizzle/0010`）：
+  - **政策**：加 `summary`(三语摘要) / `sourceUrl`(原文) / `region`(适用范围) / `effectiveDate`(生效日)，后台可录入，`/policy` 展示。
+  - **新闻**：加 `url`(原文链接) + `entityType`/`entitySlug`(实体关联)。`db:ingest` 自动填充：新闻标题按企业/行业/城市名（含英文名首词）**自动关联**；首页新闻可点击。企业/城市详情页新增「相关动态」区。
+  - **企业**：加 `executives`(高管，后台「姓名 | 职务」录入，详情页展示)。
+  - **城市**：加 `officeRent`/`avgWage`/`fdi`(营商成本，后台录入，详情页「营商成本」区)。
+  - 新闻是「删表重插」（每次 `db:ingest` 刷新），故走自动摄取而非后台录入；政策/企业/城市走后台录入。
 - [ ] **政策订阅提醒 + 站内通知**：关键词/关注对象订阅 → 新政策/动态邮件+站内推送（需接邮件服务如 Resend）。规格明确要求，带来留存。
 - [ ] **团队邀请 + 协作**：邮件邀请成员、角色权限、共享项目、评论、审批流（把已有多租户地基用起来，完善"咨询工作台"）。
 - [ ] **订阅计费（Stripe）**：套餐分层 + AI 用量计量/限流。

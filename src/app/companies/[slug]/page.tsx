@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getCompany } from "@/lib/queries";
+import { getCompany, getNewsForEntity } from "@/lib/queries";
 import { getCurrentUser } from "@/lib/auth";
 import { getEntityState } from "@/lib/user-data";
 import { EntityUserPanel } from "@/components/entity-user-panel";
@@ -12,11 +12,14 @@ export default async function CompanyDetail({ params }: { params: Promise<{ slug
   const c = await getCompany(slug);
   if (!c) return notFound();
   const user = await getCurrentUser();
-  const state = user ? await getEntityState(user.id, "company", slug) : null;
+  const [state, relatedNews] = await Promise.all([
+    user ? getEntityState(user.id, "company", slug) : null,
+    getNewsForEntity("company", slug),
+  ]);
   return (
     <div className="space-y-6">
       <EntityUserPanel entityType="company" entitySlug={slug} label={c.name} loggedIn={!!user} initialWatching={state?.watching} initialNote={state?.note} />
-      <CompanyView c={c} />
+      <CompanyView c={c} news={relatedNews} />
     </div>
   );
 }

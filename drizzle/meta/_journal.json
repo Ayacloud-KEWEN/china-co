@@ -64,6 +64,20 @@
       "when": 1783321673175,
       "tag": "0008_robust_puppet_master",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1783993954831,
+      "tag": "0009_powerful_multiple_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1783995431952,
+      "tag": "0010_cloudy_puff_adder",
+      "breakpoints": true
     }
   ]
 }

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   Home, Search, Building2, Factory, MapPin, Truck, ScrollText, BookOpen,
-  Network, MessageSquare, FileText, Users, Moon, Sun, Globe, Menu, X, Briefcase, GitCompare, User, LogOut, Star,
+  Network, MessageSquare, FileText, Users, Moon, Sun, Globe, Menu, X, Briefcase, GitCompare, User, LogOut, Star, Shield,
 } from "lucide-react";
 import { useT, useLang, langLabels, Lang } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
@@ -35,7 +35,7 @@ const groups: { label: string; items: { href: string; key: string; icon: typeof 
   ]},
 ];
 
-type Account = { name: string; email: string } | null;
+type Account = { name: string; email: string; isAdmin?: boolean } | null;
 
 export function Shell({ children, account, logout }: { children: React.ReactNode; account?: Account; logout?: () => Promise<void> }) {
   const t = useT();
@@ -107,6 +107,9 @@ function Topbar({ onMenu, menuOpen, account, logout }: { onMenu: () => void; men
               <div className="absolute right-0 mt-1 w-52 rounded-lg border bg-surface p-1 shadow-lg">
                 <div className="border-b px-3 py-2 text-xs text-muted">{account.email}</div>
                 <Link href="/me" onClick={() => setUserOpen(false)} className="flex items-center gap-2 rounded px-3 py-1.5 text-sm hover:bg-background"><Star className="h-4 w-4" /> 我的空间</Link>
+                {account.isAdmin && (
+                  <Link href="/admin" onClick={() => setUserOpen(false)} className="flex items-center gap-2 rounded px-3 py-1.5 text-sm hover:bg-background"><Shield className="h-4 w-4" /> 管理后台</Link>
+                )}
                 <form action={logout}>
                   <button type="submit" className="flex w-full items-center gap-2 rounded px-3 py-1.5 text-left text-sm text-red-500 hover:bg-background"><LogOut className="h-4 w-4" /> 退出登录</button>
                 </form>

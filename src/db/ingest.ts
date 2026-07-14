@@ -283,7 +283,41 @@ async function main() {
   }
 
   console.log("→ Fetching real news (Google News RSS, GDELT fallback)…");
-  let newsRows: { title: { zh: string; en: string; fr: string }; source: string; time: string }[] = [];
+  type NewsRow = {
+    title: { zh: string; en: string; fr: string }; source: string; time: string;
+    url: string; entityType: string | null; entitySlug: string | null;
+  };
+  let newsRows: NewsRow[] = [];
+
+  // Build a name→entity lookup so headlines can be linked to a company/industry/city.
+  const [entCompanies, entIndustries, entCities] = await Promise.all([
+    db.select({ slug: schema.companies.slug, name: schema.companies.name, nameEn: schema.companies.nameEn }).from(schema.companies),
+    db.select({ slug: schema.industries.slug, name: schema.industries.name, nameEn: schema.industries.nameEn }).from(schema.industries),
+    db.select({ slug: schema.cities.slug, name: schema.cities.name, nameEn: schema.cities.nameEn }).from(schema.cities),
+  ]);
+  // Full legal names (e.g. "BYD Company") rarely appear verbatim in headlines,
+  // so also match the first token of the English name ("BYD", "Huawei", "DJI").
+  const firstToken = (s: string) => {
+    const w = s.split(/\s+/)[0] ?? "";
+    return w.length >= 3 ? w : "";
+  };
+  const needles = (name: string, nameEn: string) =>
+    [name, nameEn, firstToken(nameEn)].filter((n) => n && n.length >= 2);
+  const linkTargets: { type: string; slug: string; needles: string[] }[] = [
+    ...entCompanies.map((c) => ({ type: "company", slug: c.slug, needles: needles(c.name, c.nameEn) })),
+    ...entIndustries.map((i) => ({ type: "industry", slug: i.slug, needles: needles(i.name, i.nameEn) })),
+    ...entCities.map((c) => ({ type: "city", slug: c.slug, needles: needles(c.name, c.nameEn) })),
+  ];
+  // Companies first (most specific), then industries, then cities.
+  const linkEntity = (title: string): { entityType: string | null; entitySlug: string | null } => {
+    const hay = title.toLowerCase();
+    for (const t of linkTargets) {
+      if (t.needles.some((n) => n && n.length >= 2 && hay.includes(n.toLowerCase()))) {
+        return { entityType: t.type, entitySlug: t.slug };
+      }
+    }
+    return { entityType: null, entitySlug: null };
+  };
 
   const gnews = await getGoogleNews("China business economy", 8);
   if (gnews.length) {
@@ -291,6 +325,8 @@ async function main() {
       title: { zh: a.title, en: a.title, fr: a.title },
       source: a.source,
       time: relativeFromRfc822(a.pubDate),
+      url: a.link,
+      ...linkEntity(a.title),
     }));
     console.log(`  ✓ Google News: ${gnews.length} articles.`);
   } else {
@@ -299,9 +335,13 @@ async function main() {
       title: { zh: a.title, en: a.title, fr: a.title },
       source: a.domain,
       time: relativeTime(a.seendate),
+      url: a.url ?? "",
+      ...linkEntity(a.title),
     }));
     if (gdelt.length) console.log(`  ✓ GDELT fallback: ${gdelt.length} articles.`);
   }
+  const linked = newsRows.filter((n) => n.entitySlug).length;
+  if (newsRows.length) console.log(`  ✓ Linked ${linked}/${newsRows.length} headlines to an entity.`);
 
   if (newsRows.length) {
     await db.delete(schema.news);

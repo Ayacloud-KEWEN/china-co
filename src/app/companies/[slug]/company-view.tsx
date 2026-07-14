@@ -4,7 +4,7 @@ import { useLang, useT } from "@/lib/i18n";
 import { PageHeader, Card, Badge, RiskBadge, Stat, SectionTitle } from "@/components/ui";
 import { AiPanel } from "@/components/ai-panel";
 import { LineChart } from "@/components/charts";
-import type { Company } from "@/db/schema";
+import type { Company, News } from "@/db/schema";
 
 type Fin = NonNullable<Company["financials"]>;
 
@@ -77,7 +77,43 @@ function OwnershipCard({ o }: { o: NonNullable<Company["ownership"]> }) {
   );
 }
 
-export function CompanyView({ c }: { c: Company }) {
+function ExecutivesCard({ execs }: { execs: NonNullable<Company["executives"]> }) {
+  return (
+    <Card>
+      <SectionTitle>高管团队</SectionTitle>
+      <div className="space-y-2">
+        {execs.map((e) => (
+          <div key={e.name} className="flex items-center justify-between text-sm">
+            <span className="font-medium">{e.name}</span>
+            <span className="text-xs text-muted">{e.role}</span>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function RelatedNewsCard({ news, lang }: { news: News[]; lang: "zh" | "en" | "fr" }) {
+  return (
+    <Card>
+      <SectionTitle>相关动态 · {news.length}</SectionTitle>
+      <ul className="divide-y">
+        {news.map((n) => (
+          <li key={n.id} className="flex items-start justify-between gap-4 py-2.5">
+            {n.url ? (
+              <a href={n.url} target="_blank" rel="noopener noreferrer" className="text-sm hover:text-accent hover:underline">{n.title[lang]}</a>
+            ) : (
+              <span className="text-sm">{n.title[lang]}</span>
+            )}
+            <span className="shrink-0 text-xs text-muted">{n.source} · {n.time}</span>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+export function CompanyView({ c, news = [] }: { c: Company; news?: News[] }) {
   const { lang } = useLang();
   const t = useT();
 
@@ -133,6 +169,10 @@ export function CompanyView({ c }: { c: Company }) {
           </ul>
         </Card>
       </div>
+
+      {c.executives && c.executives.length > 0 && <ExecutivesCard execs={c.executives} />}
+
+      {news.length > 0 && <RelatedNewsCard news={news} lang={lang} />}
 
       {c.financials && <FinancialsCard f={c.financials} />}
 

@@ -89,7 +89,11 @@ export function HomeView({ news, indicators, industries, companies, policies, pl
           <ul className="divide-y">
             {news.map((n) => (
               <li key={n.id} className="flex items-start justify-between gap-4 py-3">
-                <span className="text-sm">{n.title[lang]}</span>
+                {n.url ? (
+                  <a href={n.url} target="_blank" rel="noopener noreferrer" className="text-sm hover:text-accent hover:underline">{n.title[lang]}</a>
+                ) : (
+                  <span className="text-sm">{n.title[lang]}</span>
+                )}
                 <span className="shrink-0 text-xs text-muted">{n.source} · {n.time}</span>
               </li>
             ))}

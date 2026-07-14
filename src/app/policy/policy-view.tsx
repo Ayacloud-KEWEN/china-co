@@ -21,11 +21,21 @@ export function PolicyView({ policies }: { policies: Policy[] }) {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="font-medium">{p.title[lang]}</div>
-                <div className="mt-1 text-xs text-muted">{p.org} · {p.date}</div>
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+                  <span>{p.org} · {p.date}</span>
+                  {p.region && <span>· 适用 {p.region}</span>}
+                  {p.effectiveDate && <span>· 生效 {p.effectiveDate}</span>}
+                </div>
               </div>
               <Badge tone={impactTone[p.impact]}>影响 {p.impact}</Badge>
             </div>
-            <div className="mt-2 flex flex-wrap gap-1.5">{p.tags.map((tag) => <Badge key={tag}>{tag}</Badge>)}</div>
+            {p.summary?.[lang] && <p className="mt-2 text-sm text-muted">{p.summary[lang]}</p>}
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {p.tags.map((tag) => <Badge key={tag}>{tag}</Badge>)}
+              {p.sourceUrl && (
+                <a href={p.sourceUrl} target="_blank" rel="noopener noreferrer" className="ml-auto text-xs text-accent hover:underline">原文 ↗</a>
+              )}
+            </div>
           </Card>
         ))}
       </div>

@@ -5,6 +5,7 @@ import { LangProvider } from "@/lib/i18n";
 import { ThemeProvider } from "@/lib/theme";
 import { Shell } from "@/components/shell";
 import { getCurrentUser } from "@/lib/auth";
+import { isPlatformAdmin } from "@/lib/admin";
 import { logoutAction } from "@/app/actions/auth";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const user = await getCurrentUser();
-  const account = user ? { name: user.name, email: user.email } : null;
+  const account = user ? { name: user.name, email: user.email, isAdmin: isPlatformAdmin(user) } : null;
   return (
     <html lang="zh" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full">

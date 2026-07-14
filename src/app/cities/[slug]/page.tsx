@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getCityBySlug } from "@/lib/queries";
+import { getCityBySlug, getNewsForEntity } from "@/lib/queries";
 import { getCurrentUser } from "@/lib/auth";
 import { getEntityState } from "@/lib/user-data";
 import { EntityUserPanel } from "@/components/entity-user-panel";
@@ -12,11 +12,14 @@ export default async function CityDetail({ params }: { params: Promise<{ slug: s
   const c = await getCityBySlug(slug);
   if (!c) return notFound();
   const user = await getCurrentUser();
-  const state = user ? await getEntityState(user.id, "city", slug) : null;
+  const [state, relatedNews] = await Promise.all([
+    user ? getEntityState(user.id, "city", slug) : null,
+    getNewsForEntity("city", slug),
+  ]);
   return (
     <div className="space-y-6">
       <EntityUserPanel entityType="city" entitySlug={slug} label={c.name} loggedIn={!!user} initialWatching={state?.watching} initialNote={state?.note} />
-      <CityView c={c} />
+      <CityView c={c} news={relatedNews} />
     </div>
   );
 }

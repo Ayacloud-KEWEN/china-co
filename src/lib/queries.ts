@@ -1,5 +1,5 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 
 export const getCompanies = () => db.select().from(schema.companies);
@@ -19,6 +19,11 @@ async function one<T>(rows: Promise<T[]>): Promise<T | undefined> {
   return (await rows)[0];
 }
 
+// News headlines linked to a specific entity during ingest (best-effort match).
+export const getNewsForEntity = (entityType: string, entitySlug: string) =>
+  db.select().from(schema.news)
+    .where(and(eq(schema.news.entityType, entityType), eq(schema.news.entitySlug, entitySlug)));
+
 export const getCompany = (slug: string) =>
   one(db.select().from(schema.companies).where(eq(schema.companies.slug, slug)));
 export const getIndustryBySlug = (slug: string) =>
@@ -27,6 +32,10 @@ export const getCityBySlug = (slug: string) =>
   one(db.select().from(schema.cities).where(eq(schema.cities.slug, slug)));
 export const getPlaybookBySlug = (slug: string) =>
   one(db.select().from(schema.playbooks).where(eq(schema.playbooks.slug, slug)));
+export const getSupplierBySlug = (slug: string) =>
+  one(db.select().from(schema.suppliers).where(eq(schema.suppliers.slug, slug)));
+export const getPolicyBySlug = (slug: string) =>
+  one(db.select().from(schema.policies).where(eq(schema.policies.slug, slug)));
 
 // Inferred row types for passing DB data into client components.
 export type CompanyRow = typeof schema.companies.$inferSelect;
