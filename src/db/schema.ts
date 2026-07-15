@@ -59,9 +59,33 @@ export const savedAnalyses = pgTable("saved_analyses", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Keyword subscriptions: a user is alerted when new policies match a keyword.
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  orgId: integer("org_id").notNull(),
+  keyword: text("keyword").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => [uniqueIndex("sub_uniq").on(t.userId, t.keyword)]);
+
+// In-app notifications (fanned out when matching content is published).
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  kind: text("kind").notNull(),          // policy | news
+  title: text("title").notNull(),
+  body: text("body").notNull().default(""),
+  url: text("url").notNull().default(""),
+  refKey: text("ref_key").notNull(),     // e.g. "policy:<slug>" — dedup key per user
+  read: boolean("read").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => [uniqueIndex("notif_uniq").on(t.userId, t.refKey)]);
+
 export type User = typeof users.$inferSelect;
 export type Watchlist = typeof watchlist.$inferSelect;
 export type Note = typeof notes.$inferSelect;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
 export type SavedAnalysis = typeof savedAnalyses.$inferSelect;
 
 

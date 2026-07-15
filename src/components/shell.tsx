@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { useT, useLang, langLabels, Lang } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
+import { NotificationBell } from "@/components/notification-bell";
+import type { Notification } from "@/db/schema";
 
 const groups: { label: string; items: { href: string; key: string; icon: typeof Home }[] }[] = [
   { label: "", items: [
@@ -37,7 +39,10 @@ const groups: { label: string; items: { href: string; key: string; icon: typeof 
 
 type Account = { name: string; email: string; isAdmin?: boolean } | null;
 
-export function Shell({ children, account, logout }: { children: React.ReactNode; account?: Account; logout?: () => Promise<void> }) {
+export function Shell({ children, account, logout, notifications = [], unread = 0 }: {
+  children: React.ReactNode; account?: Account; logout?: () => Promise<void>;
+  notifications?: Notification[]; unread?: number;
+}) {
   const t = useT();
   const path = usePathname();
   const [open, setOpen] = useState(false);
@@ -80,14 +85,17 @@ export function Shell({ children, account, logout }: { children: React.ReactNode
 
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar onMenu={() => setOpen((o) => !o)} menuOpen={open} account={account} logout={logout} />
+        <Topbar onMenu={() => setOpen((o) => !o)} menuOpen={open} account={account} logout={logout} notifications={notifications} unread={unread} />
         <main className="mx-auto w-full max-w-7xl flex-1 px-5 py-6 lg:px-8">{children}</main>
       </div>
     </div>
   );
 }
 
-function Topbar({ onMenu, menuOpen, account, logout }: { onMenu: () => void; menuOpen: boolean; account?: Account; logout?: () => Promise<void> }) {
+function Topbar({ onMenu, menuOpen, account, logout, notifications = [], unread = 0 }: {
+  onMenu: () => void; menuOpen: boolean; account?: Account; logout?: () => Promise<void>;
+  notifications?: Notification[]; unread?: number;
+}) {
   const { theme, toggle } = useTheme();
   const { lang, setLang } = useLang();
   const [langOpen, setLangOpen] = useState(false);
@@ -98,6 +106,7 @@ function Topbar({ onMenu, menuOpen, account, logout }: { onMenu: () => void; men
       <button className="lg:hidden" onClick={onMenu}>{menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}</button>
       <div className="hidden text-sm text-muted lg:block">AI 驱动的企业级中国市场进入与战略咨询操作系统</div>
       <div className="flex items-center gap-2">
+        {account && <NotificationBell notifications={notifications} unread={unread} />}
         {account ? (
           <div className="relative">
             <button onClick={() => setUserOpen((o) => !o)} className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm hover:bg-background">

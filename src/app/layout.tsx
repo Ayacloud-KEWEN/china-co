@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/lib/theme";
 import { Shell } from "@/components/shell";
 import { getCurrentUser } from "@/lib/auth";
 import { isPlatformAdmin } from "@/lib/admin";
+import { getNotifications, getUnreadCount } from "@/lib/notifications";
 import { logoutAction } from "@/app/actions/auth";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -19,12 +20,15 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const user = await getCurrentUser();
   const account = user ? { name: user.name, email: user.email, isAdmin: isPlatformAdmin(user) } : null;
+  const [notifications, unread] = user
+    ? await Promise.all([getNotifications(user.id, 15), getUnreadCount(user.id)])
+    : [[], 0];
   return (
     <html lang="zh" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full">
         <ThemeProvider>
           <LangProvider>
-            <Shell account={account} logout={logoutAction}>{children}</Shell>
+            <Shell account={account} logout={logoutAction} notifications={notifications} unread={unread}>{children}</Shell>
           </LangProvider>
         </ThemeProvider>
       </body>

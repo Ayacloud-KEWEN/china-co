@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { requireAdmin } from "@/lib/admin";
 import { lookupCityByName } from "@/lib/sources/wikidata-sparql";
+import { fanoutPolicyNotifications } from "@/lib/notifications";
 
 type Result = { error?: string; ok?: boolean };
 
@@ -228,6 +229,7 @@ export async function savePolicy(prevSlug: string | null, _prev: Result | null, 
     effectiveDate: str(fd, "effectiveDate"),
   };
 
+  let created = false;
   try {
     if (prevSlug) {
       await db.update(schema.policies).set(values).where(eq(schema.policies.slug, prevSlug));
@@ -235,10 +237,21 @@ export async function savePolicy(prevSlug: string | null, _prev: Result | null, 
       const existing = await db.select({ slug: schema.policies.slug }).from(schema.policies).where(eq(schema.policies.slug, slug)).limit(1);
       if (existing.length) return { error: "该 slug 已存在" };
       await db.insert(schema.policies).values(values);
+      created = true;
     }
   } catch (e) {
     return { error: `保存失败：${(e as Error).message}` };
   }
+
+  // Alert subscribers whose keywords match this newly-published policy.
+  if (created) {
+    const [row] = await db.select().from(schema.policies).where(eq(schema.policies.slug, slug)).limit(1);
+    if (row) {
+      const n = await fanoutPolicyNotifications(row).catch(() => 0);
+      if (n) revalidatePath("/");
+    }
+  }
+
   revalidatePath("/admin/policies");
   revalidatePath("/policy");
   return { ok: true };
