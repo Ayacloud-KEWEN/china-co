@@ -154,17 +154,191 @@ export const cities: City[] = [
 export type Playbook = {
   slug: string; category: string; title: { zh: string; en: string; fr: string };
   time: string; cost: string; difficulty: "低" | "中" | "高";
+  summary?: { zh: string; en: string; fr: string };
+  steps?: { title: string; detail: string }[];
+  documents?: string[];
+  departments?: string[];
+  risks?: string[];
+  tips?: string[];
+  faq?: { q: string; a: string }[];
+  relatedCities?: string[];
+  sourceUrl?: string;
 };
 
 export const playbookCategories = ["市场进入", "销售", "营销", "跨境电商", "采购", "OEM/ODM", "品牌建设", "微信营销", "小红书", "抖音", "知识产权", "CCC认证", "注册商标", "设立外资公司", "招聘", "税务", "物流", "展会", "融资", "机器人", "新能源", "医疗器械"];
 
 export const playbooks: Playbook[] = [
-  { slug: "setup-wfoe", category: "设立外资公司", title: { zh: "在中国设立外商独资企业（WFOE）", en: "Set up a WFOE in China", fr: "Créer une WFOE en Chine" }, time: "2–4 个月", cost: "¥80k–200k", difficulty: "中" },
-  { slug: "market-entry", category: "市场进入", title: { zh: "欧洲品牌进入中国市场完整攻略", en: "Full China market entry playbook for European brands", fr: "Guide complet d'entrée sur le marché chinois" }, time: "3–6 个月", cost: "¥200k+", difficulty: "高" },
-  { slug: "find-odm", category: "OEM/ODM", title: { zh: "寻找并验证中国 ODM 工厂", en: "Find and vet Chinese ODM factories", fr: "Trouver et valider des usines ODM chinoises" }, time: "1–3 个月", cost: "¥20k–100k", difficulty: "中" },
-  { slug: "ccc", category: "CCC认证", title: { zh: "办理 CCC 强制性产品认证", en: "Obtain CCC compulsory certification", fr: "Obtenir la certification CCC" }, time: "2–5 个月", cost: "¥30k–120k", difficulty: "中" },
-  { slug: "xiaohongshu", category: "小红书", title: { zh: "用小红书打造品牌种草", en: "Build brand buzz on Xiaohongshu (RED)", fr: "Créer du buzz sur Xiaohongshu" }, time: "持续", cost: "¥50k+/月", difficulty: "中" },
-  { slug: "trademark", category: "注册商标", title: { zh: "在中国注册商标并防抢注", en: "Register a trademark and prevent squatting", fr: "Déposer une marque et éviter le squatting" }, time: "9–12 个月", cost: "¥5k–20k", difficulty: "低" },
+  {
+    slug: "setup-wfoe", category: "设立外资公司",
+    title: { zh: "在中国设立外商独资企业（WFOE）", en: "Set up a WFOE in China", fr: "Créer une WFOE en Chine" },
+    time: "2–4 个月", cost: "¥80k–200k", difficulty: "中",
+    summary: {
+      zh: "外商独资企业（WFOE）是外国投资者在华 100% 控股的有限责任公司，可独立经营、开票与利润汇出，是欧洲企业进入中国最常见的实体形式。",
+      en: "A WFOE is a limited company wholly owned by foreign investors — the most common vehicle for European firms to operate, invoice and repatriate profits in China.",
+      fr: "La WFOE est une société à 100 % de capitaux étrangers, la forme la plus courante pour opérer, facturer et rapatrier des bénéfices en Chine.",
+    },
+    steps: [
+      { title: "公司名称预先核准", detail: "向拟设立地市场监督管理局提交企业名称，核准字号、行业与组织形式。" },
+      { title: "确定注册地址与经营范围", detail: "租赁真实办公地址（部分园区可挂靠），经营范围需与实际业务及负面清单相符。" },
+      { title: "商务主管部门备案/审批", detail: "负面清单外行业为备案制，清单内需审批；通过外商投资信息报告系统提交。" },
+      { title: "领取营业执照", detail: "市场监督管理局核发营业执照（含统一社会信用代码）。" },
+      { title: "刻制公章", detail: "公安备案刻制公章、财务章、法人章与发票章。" },
+      { title: "银行开户", detail: "开立人民币基本户与外币资本金账户。" },
+      { title: "外汇登记", detail: "通过银行办理外汇登记（原 SAFE 登记），用于资本金结汇。" },
+      { title: "税务与社保登记", detail: "税务报到、申领发票（税控），办理社保公积金开户。" },
+    ],
+    documents: ["投资者主体资格证明（公证认证）", "法定代表人及董事护照", "注册地址租赁合同", "公司章程", "经营范围说明", "投资总额与注册资本说明"],
+    departments: ["市场监督管理局", "商务主管部门", "公安局（刻章备案）", "银行", "外汇管理局（SAFE）", "税务局", "社保公积金中心"],
+    risks: ["经营范围与负面清单不符导致退回", "注册地址不合规（虚拟地址被查）", "资本金结汇用途受限", "利润汇出需完税凭证", "部分行业需前置许可（食品、医疗器械等）"],
+    tips: ["先确认行业是否在《外商投资准入负面清单》内", "优先选择自贸区/经开区享受优惠与更快审批", "注册资本认缴制但需与经营规模匹配", "聘请本地代理记账降低合规成本"],
+    faq: [
+      { q: "需要多少注册资本？", a: "多数行业实行认缴制、无最低限额，但需与经营规模、租金与人力匹配，过低会影响资质与工作签证。" },
+      { q: "全流程多久？", a: "顺利情况下约 2–4 个月，取决于行业审批与地址落实。" },
+      { q: "利润可以汇回欧洲吗？", a: "可以。完成年度审计、企业所得税汇算清缴并取得完税凭证后，可通过银行购汇汇出。" },
+    ],
+    relatedCities: ["上海", "深圳", "苏州"],
+    sourceUrl: "http://www.mofcom.gov.cn",
+  },
+  {
+    slug: "market-entry", category: "市场进入",
+    title: { zh: "欧洲品牌进入中国市场完整攻略", en: "Full China market entry playbook for European brands", fr: "Guide complet d'entrée sur le marché chinois" },
+    time: "3–6 个月", cost: "¥200k+", difficulty: "高",
+    summary: {
+      zh: "欧洲品牌进入中国需在实体、合规、渠道、营销与本地化五个维度系统规划。本攻略给出从调研到落地的整体路线。",
+      en: "Entering China spans five dimensions — entity, compliance, channels, marketing and localization. This playbook lays out the path from research to launch.",
+      fr: "Entrer en Chine couvre cinq axes : entité, conformité, canaux, marketing et localisation, de l'étude au lancement.",
+    },
+    steps: [
+      { title: "市场与竞品调研", detail: "评估市场规模、政策、竞争格局、目标客群与定价空间。" },
+      { title: "选择进入模式", detail: "跨境电商试水 / 设立 WFOE / 合资 / 找经销代理，权衡控制力与投入。" },
+      { title: "合规与资质", detail: "产品准入（CCC/NMPA 等）、商标与知识产权、数据与广告合规。" },
+      { title: "渠道搭建", detail: "天猫国际/京东/抖音电商，线下经销，B2B 直销。" },
+      { title: "品牌与营销本地化", detail: "微信/小红书/抖音内容与 KOL，中文品牌与本地客服。" },
+      { title: "运营与迭代", detail: "数据驱动优化选品、定价与投放，建立售后与履约。" },
+    ],
+    documents: ["市场调研报告", "进入模式可行性分析", "合规清单", "商标注册", "渠道合同", "营销预算"],
+    departments: ["视模式而定：市场监管、商务、海关、网信办（广告/数据合规）"],
+    risks: ["低估合规与本地化成本", "渠道选择错误", "商标未先行被抢注", "照搬欧洲打法水土不服", "现金流与回款周期压力"],
+    tips: ["先用跨境电商低成本验证需求再重投入", "商标与域名/社媒账号先行注册", "组建或外包本地团队", "预留合规缓冲期"],
+    faq: [
+      { q: "一定要设立公司吗？", a: "不一定。可先用跨境电商保税/直邮模式验证，跑通后再设实体。" },
+      { q: "预算怎么估？", a: "试水期数十万元级；规模化后含团队/营销/合规通常 ¥200k+ 起。" },
+    ],
+    relatedCities: ["上海", "深圳", "杭州"],
+    sourceUrl: "http://www.mofcom.gov.cn",
+  },
+  {
+    slug: "find-odm", category: "OEM/ODM",
+    title: { zh: "寻找并验证中国 ODM 工厂", en: "Find and vet Chinese ODM factories", fr: "Trouver et valider des usines ODM chinoises" },
+    time: "1–3 个月", cost: "¥20k–100k", difficulty: "中",
+    summary: {
+      zh: "在中国寻找并验证 ODM/OEM 工厂是硬件与消费品出海的关键。系统化的筛选、审厂与质控流程能显著降低质量与交付风险。",
+      en: "Finding and vetting ODM/OEM factories is critical for hardware sourcing. A systematic screen-audit-QC process cuts quality and delivery risk.",
+      fr: "Trouver et auditer des usines ODM/OEM est clé pour le sourcing matériel : un processus tri-audit-contrôle réduit les risques.",
+    },
+    steps: [
+      { title: "明确产品规格与需求", detail: "编写规格书：材料、公差、认证、包装、MOQ 与目标成本。" },
+      { title: "多渠道寻源", detail: "1688/阿里国际站、广交会/行业展会、行业协会、同行推荐。" },
+      { title: "初筛与询价", detail: "核对资质、产能、出口经验、认证；比较报价与 MOQ。" },
+      { title: "样品打样", detail: "索取样品验证质量与一致性，必要时做第三方测试。" },
+      { title: "工厂审核", detail: "现场或第三方审厂：质量体系、设备、用工合规与社会责任。" },
+      { title: "商务谈判与合同", detail: "明确价格、账期、交期、质量标准、验货条款与知识产权归属。" },
+      { title: "量产与质控", detail: "首件确认、过程巡检、出货前验货（AQL 抽检）。" },
+    ],
+    documents: ["产品规格书", "工厂营业执照与出口资质", "体系认证（ISO 9001 等）", "产品认证（CE/CCC 等）", "审厂报告", "样品测试报告", "采购合同"],
+    departments: ["商业流程，无政府审批", "第三方验厂/验货机构（SGS、TÜV、BV 等）"],
+    risks: ["贸易商冒充工厂", "打样合格量产降配", "MOQ 与账期压力", "知识产权被复制", "旺季产能挤兑导致交期延误"],
+    tips: ["用第三方审厂与验货", "分批付款绑定质量节点", "签署保密与模具/IP 归属条款", "小批量试产验证再放量"],
+    faq: [
+      { q: "如何辨别工厂还是贸易商？", a: "核对营业执照经营范围、要求视频看产线、核对增值税发票抬头与出口主体。" },
+      { q: "一定要去现场吗？", a: "建议至少一次现场或委托第三方审厂，尤其是定制与高货值订单。" },
+    ],
+    relatedCities: ["深圳", "苏州", "杭州"],
+    sourceUrl: "https://www.1688.com",
+  },
+  {
+    slug: "ccc", category: "CCC认证",
+    title: { zh: "办理 CCC 强制性产品认证", en: "Obtain CCC compulsory certification", fr: "Obtenir la certification CCC" },
+    time: "2–5 个月", cost: "¥30k–120k", difficulty: "中",
+    summary: {
+      zh: "中国强制性产品认证（CCC/3C）是列入目录产品进入中国市场的强制门槛，未获证不得进口、销售或在经营活动中使用。",
+      en: "China Compulsory Certification (CCC/3C) is a mandatory gate for listed products — without it they can't be imported, sold or used commercially in China.",
+      fr: "La certification obligatoire CCC/3C conditionne l'accès au marché des produits listés : sans elle, ni import ni vente en Chine.",
+    },
+    steps: [
+      { title: "判断产品是否在 CCC 目录内", detail: "对照《强制性产品认证目录》确认类别；不在目录内可申请《不属于 CCC 范围》说明。" },
+      { title: "选择指定认证机构", detail: "向国家认监委（CNCA）指定机构（如 CQC）提交申请。" },
+      { title: "提交申请与技术资料", detail: "产品说明、电路图、关键元器件清单、CB 报告等。" },
+      { title: "型式试验", detail: "送样至指定实验室按国标（GB）测试。" },
+      { title: "初始工厂检查", detail: "认证机构对生产厂进行现场审查（质量体系与一致性）。" },
+      { title: "评价与发证", detail: "通过后核发 CCC 证书。" },
+      { title: "标志使用与获证后监督", detail: "加施 CCC 标志并接受年度监督检查。" },
+    ],
+    documents: ["申请表", "产品铭牌与说明书", "电气原理图/PCB", "关键元器件与材料清单", "CB 报告（如有）", "工厂质量手册", "商标授权（如适用）"],
+    departments: ["国家市场监督管理总局 / 国家认监委（CNCA）", "指定认证机构（如 CQC）", "指定检测实验室"],
+    risks: ["关键元器件变更需变更证书", "工厂检查不通过延误上市", "目录判定错误导致清关受阻", "标志滥用被处罚"],
+    tips: ["提前用 CB 报告加速型式试验", "变更元器件前先评估是否需重新认证", "进口前确认清关所需 CCC 证书与产品一致"],
+    faq: [
+      { q: "所有电子产品都要 CCC 吗？", a: "只有列入目录的产品才需要，需按目录逐项判定。" },
+      { q: "周期多久？", a: "一般 2–5 个月，取决于测试与工厂检查排期。" },
+    ],
+    sourceUrl: "https://www.samr.gov.cn",
+  },
+  {
+    slug: "xiaohongshu", category: "小红书",
+    title: { zh: "用小红书打造品牌种草", en: "Build brand buzz on Xiaohongshu (RED)", fr: "Créer du buzz sur Xiaohongshu" },
+    time: "持续", cost: "¥50k+/月", difficulty: "中",
+    summary: {
+      zh: "小红书（RED）是中国中高端消费决策的核心种草平台，尤其适合美妆、母婴、家居、食品与生活方式品牌建立口碑。",
+      en: "Xiaohongshu (RED) is China's key discovery platform for premium consumers — ideal for beauty, mother-baby, home, food and lifestyle brands.",
+      fr: "Xiaohongshu (RED) est la plateforme de découverte clé pour les consommateurs premium en Chine.",
+    },
+    steps: [
+      { title: "开设企业号", detail: "完成企业认证，搭建品牌主页与专业号。" },
+      { title: "内容与人设定位", detail: "明确目标人群、内容支柱与视觉风格。" },
+      { title: "KOL/KOC 投放", detail: "头部造势 + 腰尾部铺量，以真实体验种草。" },
+      { title: "信息流与搜索广告", detail: "结合薯条/聚光投放放大优质笔记。" },
+      { title: "电商闭环", detail: "挂载商城/店铺或引导天猫京东转化。" },
+      { title: "数据复盘", detail: "监测互动、收藏、搜索指数与转化，迭代内容。" },
+    ],
+    documents: ["企业营业执照（认证）", "品牌与产品资料", "内容排期表", "KOL 名单与合同", "投放预算表"],
+    departments: ["商业运营，无政府审批", "注意《广告法》合规：不得用绝对化用语、需标注广告"],
+    risks: ["虚假种草/刷量被限流处罚", "违反广告法用语被罚", "内容同质化难破圈", "ROI 不稳定"],
+    tips: ["重视真实测评与 UGC", "腰尾部 KOC 性价比高", "标注合作避免违规", "用搜索卡位品类关键词"],
+    faq: [
+      { q: "需要中国公司吗？", a: "企业号认证通常需中国营业执照，可通过合资/代运营解决。" },
+      { q: "多久见效？", a: "种草是持续投入，一般 1–3 个月积累搜索与口碑。" },
+    ],
+    sourceUrl: "https://www.xiaohongshu.com",
+  },
+  {
+    slug: "trademark", category: "注册商标",
+    title: { zh: "在中国注册商标并防抢注", en: "Register a trademark and prevent squatting", fr: "Déposer une marque et éviter le squatting" },
+    time: "9–12 个月", cost: "¥5k–20k", difficulty: "低",
+    summary: {
+      zh: "中国采用商标注册在先原则，抢注风险高。尽早在国家知识产权局商标局注册中英文及图形商标，是品牌进入中国的第一道防线。",
+      en: "China is first-to-file with high squatting risk. Registering Chinese, English and logo marks early with CNIPA is a brand's first line of defense.",
+      fr: "La Chine applique le premier-déposant : déposer tôt les marques (chinoise, anglaise, logo) auprès de la CNIPA est essentiel.",
+    },
+    steps: [
+      { title: "商标检索", detail: "在商标局数据库检索近似商标，评估注册可行性。" },
+      { title: "确定类别与商品项目", detail: "按尼斯分类选定类别（建议核心 + 防御类别）。" },
+      { title: "提交申请", detail: "通过商标局或代理机构提交并缴纳官费。" },
+      { title: "形式审查", detail: "检查申请文件是否合规，通过后下发受理通知。" },
+      { title: "实质审查", detail: "审查显著性及是否与在先商标冲突（约 4–6 个月）。" },
+      { title: "初步审定公告", detail: "公告 3 个月异议期。" },
+      { title: "核准注册", detail: "无异议则核发《商标注册证》，有效期 10 年。" },
+    ],
+    documents: ["申请人主体资格证明", "商标图样", "商品/服务清单", "委托书（代理时）"],
+    departments: ["国家知识产权局商标局（CNIPA）"],
+    risks: ["被在先抢注需通过异议/无效程序维权，成本高", "仅注册英文未注册中文易被抢注", "类别覆盖不足留下空档", "驳回需复审"],
+    tips: ["中英文 + 图形分别注册", "覆盖核心及关联防御类别", "进入前先注册再上市", "保留使用证据以防连续三年不使用被撤销（撤三）"],
+    faq: [
+      { q: "多久拿证？", a: "顺利约 9–12 个月。" },
+      { q: "需要在中国有公司吗？", a: "不需要，境外主体可通过代理直接申请。" },
+    ],
+    sourceUrl: "https://www.cnipa.gov.cn",
+  },
 ];
 
 export type Supplier = {

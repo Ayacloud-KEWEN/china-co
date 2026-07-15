@@ -12,6 +12,7 @@ const tabs = [
   { href: "/admin/cities", label: "城市" },
   { href: "/admin/policies", label: "政策" },
   { href: "/admin/suppliers", label: "供应商" },
+  { href: "/admin/playbooks", label: "攻略" },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

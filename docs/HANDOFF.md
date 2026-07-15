@@ -34,7 +34,9 @@ Next.js 16（App Router）+ PostgreSQL/pgvector + Drizzle + DeepSeek，14 个免
 OpenAlex、UN Comtrade、OpenStreetMap/Overpass、Google Patents、World Bank、World Bank Procurement、
 Yahoo Finance、Frankfurter/ECB。
 
-**数据真实性现状**：新闻、宏观指标、汇率、省份 GDP、展会、招标全为真实摄取；企业概述/成立/员工/专利/财务/股价/股权、行业论文+贸易、城市地图 POI 均真实；**城市人口/GDP**（Wikidata，GDP 有单位护栏、缺失则保留种子）、**企业 growth**（Yahoo 营收增速，限上市）已真实化。**仍为种子/后台维护**：供应商、政策（无免费 API，改由 `/admin` 人工维护）、攻略（编辑内容），以及企业 `riskScore`（自定义评分）、行业 `marketSize`、城市 `pillars`/`leaders` 等无干净免费源的字段。
+**数据真实性现状**：新闻、宏观指标、汇率、省份 GDP、展会、招标全为真实摄取；企业概述/成立/员工/专利/财务/股价/股权、行业论文+贸易、城市地图 POI 均真实；**城市人口/GDP**（Wikidata，GDP 有单位护栏、缺失则保留种子）、**企业 growth**（Yahoo 营收增速，限上市）已真实化。**仍为种子/后台维护**：供应商、政策（无免费 API，改由 `/admin` 人工维护），以及企业 `riskScore`（自定义评分）、行业 `marketSize`、城市 `pillars`/`leaders` 等无干净免费源的字段。
+
+**攻略中心已做实**（迁移 `drizzle/0012`）：playbooks 加结构化字段（`summary`/`steps`/`documents`/`departments`/`risks`/`tips`/`faq`/`relatedCities`/`sourceUrl`），6 篇内置攻略（WFOE/市场进入/找ODM/CCC/小红书/商标）已填**真实分步流程 + 所需材料 + 涉及部门 + 风险 + FAQ + 官方依据**（内容在 `src/lib/data.ts`）。详情页富展示（步骤时间线/清单/FAQ），列表卡片显示概述与步骤数，并接入 `/admin/playbooks` 增删改查。**注意**：内置内容通过 `db:seed` 写入，生产更新用 `./deploy.sh --refresh`（会重新 seed 基础内容并重新 ingest，用户数据不受影响）。
 
 **能力**：
 - 向量 RAG（pgvector + 本地 `multilingual-e5-small` embedding）+ **AI 工具调用**（精确查库）+ 引用来源

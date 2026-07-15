@@ -57,6 +57,18 @@ const i18nOpt = (fd: FormData, k: string) => {
   return v.zh || v.en || v.fr ? v : null;
 };
 
+// Pipe-pair lines "a | b" → {[k1]: a, [k2]: b}[] (drops rows with an empty first field).
+const pairs = <A extends string, B extends string>(fd: FormData, key: string, k1: A, k2: B) =>
+  String(fd.get(key) ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [a, b] = line.split("|").map((s) => s.trim());
+      return { [k1]: a || "", [k2]: b || "" } as Record<A | B, string>;
+    })
+    .filter((o) => o[k1]);
+
 const slugOk = (s: string) => /^[a-z0-9-]+$/.test(s);
 
 // ========================= Companies =========================
@@ -262,6 +274,60 @@ export async function deletePolicy(slug: string) {
   await db.delete(schema.policies).where(eq(schema.policies.slug, slug));
   revalidatePath("/admin/policies");
   revalidatePath("/policy");
+}
+
+// ========================= Playbooks =========================
+
+const PLAYBOOK_DIFF = ["低", "中", "高"] as const;
+
+export async function savePlaybook(prevSlug: string | null, _prev: Result | null, fd: FormData): Promise<Result> {
+  await requireAdmin();
+  const slug = str(fd, "slug").toLowerCase();
+  if (!slugOk(slug)) return { error: "slug 只能包含小写字母、数字和连字符" };
+  const difficulty = str(fd, "difficulty") as (typeof PLAYBOOK_DIFF)[number];
+  if (!PLAYBOOK_DIFF.includes(difficulty)) return { error: "难度无效" };
+  const title = i18n(fd, "title");
+  if (!title.zh) return { error: "中文标题必填" };
+
+  const values = {
+    slug,
+    category: str(fd, "category") || "市场进入",
+    title,
+    time: str(fd, "time"),
+    cost: str(fd, "cost"),
+    difficulty,
+    summary: i18nOpt(fd, "summary"),
+    steps: pairs(fd, "steps", "title", "detail"),
+    documents: list(fd, "documents"),
+    departments: list(fd, "departments"),
+    risks: list(fd, "risks"),
+    tips: list(fd, "tips"),
+    faq: pairs(fd, "faq", "q", "a"),
+    relatedCities: list(fd, "relatedCities"),
+    sourceUrl: str(fd, "sourceUrl"),
+  };
+
+  try {
+    if (prevSlug) {
+      await db.update(schema.playbooks).set(values).where(eq(schema.playbooks.slug, prevSlug));
+    } else {
+      const existing = await db.select({ slug: schema.playbooks.slug }).from(schema.playbooks).where(eq(schema.playbooks.slug, slug)).limit(1);
+      if (existing.length) return { error: "该 slug 已存在" };
+      await db.insert(schema.playbooks).values(values);
+    }
+  } catch (e) {
+    return { error: `保存失败：${(e as Error).message}` };
+  }
+  revalidatePath("/admin/playbooks");
+  revalidatePath("/playbooks");
+  return { ok: true };
+}
+
+export async function deletePlaybook(slug: string) {
+  await requireAdmin();
+  await db.delete(schema.playbooks).where(eq(schema.playbooks.slug, slug));
+  revalidatePath("/admin/playbooks");
+  revalidatePath("/playbooks");
 }
 
 // ========================= Suppliers =========================

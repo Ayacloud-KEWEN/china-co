@@ -185,6 +185,16 @@ export const playbooks = pgTable("playbooks", {
   time: text("time").notNull(),
   cost: text("cost").notNull(),
   difficulty: text("difficulty").$type<"低" | "中" | "高">().notNull(),
+  // Structured guide content (nullable; admin-editable, seeded for the built-ins).
+  summary: jsonb("summary").$type<I18nText>(),
+  steps: jsonb("steps").$type<{ title: string; detail: string }[]>(),
+  documents: jsonb("documents").$type<string[]>(),
+  departments: jsonb("departments").$type<string[]>(),
+  risks: jsonb("risks").$type<string[]>(),
+  tips: jsonb("tips").$type<string[]>(),
+  faq: jsonb("faq").$type<{ q: string; a: string }[]>(),
+  relatedCities: jsonb("related_cities").$type<string[]>(),
+  sourceUrl: text("source_url").notNull().default(""),
 });
 
 export const suppliers = pgTable("suppliers", {

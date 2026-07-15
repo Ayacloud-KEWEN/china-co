@@ -34,13 +34,22 @@ export function PlaybooksView({ playbooks }: { playbooks: Playbook[] }) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {list.map((p) => (
           <Link key={p.slug} href={`/playbooks/${p.slug}`}>
-            <Card className="h-full transition hover:border-accent hover:shadow-md">
+            <Card className="flex h-full flex-col transition hover:border-accent hover:shadow-md">
               <div className="flex items-center justify-between">
                 <Badge tone="blue">{p.category}</Badge>
                 <Badge tone={diffTone[p.difficulty]}>{p.difficulty}难度</Badge>
               </div>
               <div className="mt-3 font-medium">{p.title[lang]}</div>
+              {p.summary?.[lang] && <p className="mt-1.5 line-clamp-2 text-xs text-muted">{p.summary[lang]}</p>}
+              <div className="mt-2 flex-1" />
               <div className="mt-2 text-xs text-muted">⏱ {p.time} · 💰 {p.cost}</div>
+              {(p.steps?.length || p.departments?.length) && (
+                <div className="mt-2 flex flex-wrap gap-1.5 border-t pt-2 text-[11px] text-muted">
+                  {p.steps?.length ? <span>📋 {p.steps.length} 步流程</span> : null}
+                  {p.departments?.length ? <span>🏛 {p.departments.length} 个部门</span> : null}
+                  {p.faq?.length ? <span>❓ {p.faq.length} 问答</span> : null}
+                </div>
+              )}
             </Card>
           </Link>
         ))}
