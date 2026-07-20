@@ -81,6 +81,12 @@ if [ "$FIRST" = 1 ]; then
   npm run db:seed
 fi
 
+# Administrative divisions (GB/T 2260, ~3.4k rows). Runs on every deploy: the
+# upsert only refreshes names/structure, so admin-entered intel is preserved.
+# Skipped (non-fatal) if the source host is unreachable.
+say "Importing administrative divisions…"
+npm run db:divisions || printf '\033[1;33m⚠ divisions import failed — /cities tree keeps the previous data.\033[0m\n'
+
 if [ "$FIRST" = 1 ] || [ "$REFRESH" = 1 ]; then
   say "Ingesting real data sources (this can take a few minutes)…"
   npm run db:ingest

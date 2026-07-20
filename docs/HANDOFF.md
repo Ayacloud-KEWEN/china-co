@@ -38,6 +38,14 @@ Yahoo Finance、Frankfurter/ECB。
 
 **攻略中心已做实**（迁移 `drizzle/0012`）：playbooks 加结构化字段（`summary`/`steps`/`documents`/`departments`/`risks`/`tips`/`faq`/`relatedCities`/`sourceUrl`），6 篇内置攻略（WFOE/市场进入/找ODM/CCC/小红书/商标）已填**真实分步流程 + 所需材料 + 涉及部门 + 风险 + FAQ + 官方依据**（内容在 `src/lib/data.ts`）。详情页富展示（步骤时间线/清单/FAQ），列表卡片显示概述与步骤数，并接入 `/admin/playbooks` 增删改查。**注意**：内置内容通过 `db:seed` 写入，生产更新用 `./deploy.sh --refresh`（会重新 seed 基础内容并重新 ingest，用户数据不受影响）。
 
+**全国行政区划已接入**（迁移 `drizzle/0013`）：新增 `divisions` 表（自引用：`code`/`parent_code`/`level`），
+由 `npm run db:divisions` 从国标区划代码（GB/T 2260）公开数据集导入 **31 省 / 342 地级市 / 3056 区县 = 3429 行**（不含港澳台）。
+`/cities` 底部为可展开+可搜索的区划树，点击进 `/cities/area/[code]`（面包屑 + 下辖区域 + 已填情报）；
+填了 `city_slug` 的节点直接跳转到对应的完整城市情报页。后台 `/admin/divisions` 支持逐级下钻/搜索/「只看已填写」，
+逐个填写 GDP、人口、支柱产业、三语概述、备注。
+**关键点**：导入是 upsert，**只刷新结构与名称，不覆盖后台填写的情报**，可随部署反复运行（`deploy.sh` 已内置）；
+表结构支持任意层级，扩展到乡镇街道只需换数据源重跑，**无需改 schema**。
+
 **能力**：
 - 向量 RAG（pgvector + 本地 `multilingual-e5-small` embedding）+ **AI 工具调用**（精确查库）+ 引用来源
 - 报告 **Word/PDF 导出**（`/api/export/docx` + 打印视图）
@@ -104,12 +112,15 @@ docker-compose.yml           pgvector 容器 + init.sql 建扩展
 
 **刷新真实数据**：`npm run db:ingest && npm run db:embed`（幂等，建议每日 cron，见 OPERATIONS 第 3 节）。
 
+**填写行政区情报**：`/admin/divisions` → 下钻或搜索到目标区县 → 编辑。前台 `/cities` 区划树与
+`/cities/area/[code]` 立即读库生效，无需重启或重建。
+
 **备份**：`pg_dump`（OPERATIONS 第 6 节）。
 
 ## 7. 路线图（带优先级）
 
 ### 一线 · 让产品可运营/可卖
-- [x] **管理后台（自助录入企业/数据）** ✅ 已完成：`/admin` 控制台。仪表盘（各表计数）+ **企业/行业/城市/政策/供应商**的增删改查（网页表单，无需改 `data.ts`）+ 一键重建向量索引（`db:embed`）。
+- [x] **管理后台（自助录入企业/数据）** ✅ 已完成：`/admin` 控制台。仪表盘（各表计数）+ **企业/行业/城市/政策/供应商/攻略**的增删改查 + **行政区划**情报录入（结构只读）（网页表单，无需改 `data.ts`）+ 一键重建向量索引（`db:embed`）。
   - **鉴权**：`ADMIN_EMAILS`（逗号分隔邮箱，见 `.env.local.example`）或 `users.is_admin` 字段。生产需在 `.env.local` 设 `ADMIN_EMAILS` 并 `pm2 restart china-mos --update-env`。
   - **迁移**：`is_admin` 列（`drizzle/0009`）；信息丰富字段（`drizzle/0010`，见下）。生产 `./deploy.sh` 的 `migrate` 会自动应用。
   - 关键文件：`src/app/admin/*`、`src/app/actions/admin.ts`、`src/lib/admin.ts`。

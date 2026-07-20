@@ -169,6 +169,18 @@ China MOS 的所有情报数据来自**公开、免费、无需付费 API Key** 
 **不来自外部数据源**，由用户在应用内产生，存于 Postgres。认证为自建会话（Node `scrypt` 哈希 + httpOnly cookie），
 无需任何外部 API Key。详见 [DEVELOPMENT.md](./DEVELOPMENT.md) 阶段七。
 
+## 行政区划（独立于 `db:ingest`）
+
+| 数据源 | 用途 | 脚本 |
+| --- | --- | --- |
+| **国标行政区划代码（GB/T 2260）公开 JSON 数据集** | `divisions` 表：31 省 / 342 地级市 / 3056 区县的名称与上下级结构，驱动 `/cities` 区划树与 `/admin/divisions` | `src/db/divisions.ts`（`npm run db:divisions`） |
+
+- 独立于摄取流程：行政区划结构一年才变几次，不必跟着每日 `db:ingest` 跑。
+- **只写结构**（`name` / `parent_code` / `level`）；各级的 GDP、人口、支柱产业、概述、备注
+  由人工在 `/admin/divisions` 后台填写，重跑导入**不会覆盖**。
+- 表为自引用结构，扩展到乡镇街道只需换数据源重跑，无需改 schema。
+- 不含港澳台（数据集本身不含），如需可在后台手工补。
+
 ## 尚未接入（下一步候选）
 
 OpenCorporates（工商登记，需 token）、CNIPA（专利，无开放 API）、中国境内招投标实时流（无免费开放 API，目前用官方平台目录代替）、上市公司年报原文（PDF 解析）。
@@ -177,6 +189,7 @@ OpenCorporates（工商登记，需 token）、CNIPA（专利，无开放 API）
 
 ```bash
 npm run db:ingest        # 刷新全部真实数据源（幂等，可反复运行）
+npm run db:divisions     # 刷新全国行政区划结构（幂等，不覆盖后台填写内容）
 npm run db:embed         # 数据变更后重建 RAG 向量索引（pgvector / rag_docs）
 ```
 

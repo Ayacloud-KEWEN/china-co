@@ -1,9 +1,15 @@
 import { CitiesView } from "./cities-view";
-import { getCities, getProvinces } from "@/lib/queries";
+import { DivisionTree } from "./division-tree";
+import { getCities, getProvinces, getDivisionTree } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function CitiesPage() {
-  const [cities, provinces] = await Promise.all([getCities(), getProvinces()]);
-  return <CitiesView cities={cities} provinces={provinces} />;
+  const [cities, provinces, divisions] = await Promise.all([getCities(), getProvinces(), getDivisionTree()]);
+  return (
+    <div className="space-y-6">
+      <CitiesView cities={cities} provinces={provinces} />
+      {divisions.length > 0 && <DivisionTree nodes={divisions} />}
+    </div>
+  );
 }

@@ -13,10 +13,11 @@ async function count(table: PgTable) {
 }
 
 export default async function AdminDashboard() {
-  const [companies, industries, cities, policies, suppliers, playbooks, ragDocs, users] = await Promise.all([
+  const [companies, industries, cities, divisions, policies, suppliers, playbooks, ragDocs, users] = await Promise.all([
     count(schema.companies),
     count(schema.industries),
     count(schema.cities),
+    count(schema.divisions),
     count(schema.policies),
     count(schema.suppliers),
     count(schema.playbooks),
@@ -28,6 +29,7 @@ export default async function AdminDashboard() {
     { label: "企业", n: companies, href: "/admin/companies" },
     { label: "行业", n: industries, href: "/admin/industries" },
     { label: "城市", n: cities, href: "/admin/cities" },
+    { label: "行政区划", n: divisions, href: "/admin/divisions" },
     { label: "政策", n: policies, href: "/admin/policies" },
     { label: "供应商", n: suppliers, href: "/admin/suppliers" },
     { label: "攻略", n: playbooks, href: "/admin/playbooks" },

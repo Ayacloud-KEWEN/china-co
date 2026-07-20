@@ -1,4 +1,4 @@
-import { pgTable, text, integer, jsonb, boolean, serial, vector, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, jsonb, boolean, serial, vector, timestamp, uniqueIndex, index } from "drizzle-orm/pg-core";
 
 // --- Accounts & multi-tenancy ---
 
@@ -246,6 +246,26 @@ export const indicators = pgTable("indicators", {
   series: jsonb("series").$type<{ year: string; value: number }[]>(),
 });
 
+// Full national administrative hierarchy (GB/T 2260 codes), self-referencing so
+// any depth works. Seeded to district level today; township rows can be added
+// later by `db:divisions` without a schema change (level "town", parent = district).
+// Every row carries admin-editable intel fields that start empty.
+export const divisions = pgTable("divisions", {
+  code: text("code").primaryKey(),                 // "44", "4403", "440304"
+  parentCode: text("parent_code"),                 // null for provinces
+  level: text("level").$type<"province" | "city" | "district" | "town">().notNull(),
+  name: text("name").notNull(),
+  nameEn: text("name_en").notNull().default(""),
+  // Optional link to a fully-researched city page in `cities`.
+  citySlug: text("city_slug"),
+  // Admin-fillable intel — blank until someone fills it in.
+  gdp: text("gdp").notNull().default(""),
+  pop: text("pop").notNull().default(""),
+  pillars: jsonb("pillars").$type<string[]>().notNull().default([]),
+  summary: jsonb("summary").$type<I18nText>(),
+  notes: text("notes").notNull().default(""),
+}, (t) => [index("divisions_parent_idx").on(t.parentCode), index("divisions_name_idx").on(t.name)]);
+
 export const provinces = pgTable("provinces", {
   name: text("name").primaryKey(),
   gdpCny: text("gdp_cny").notNull(),   // stored as string to preserve precision
@@ -298,5 +318,6 @@ export type News = typeof news.$inferSelect;
 export type Indicator = typeof indicators.$inferSelect;
 export type Fx = typeof fx.$inferSelect;
 export type Province = typeof provinces.$inferSelect;
+export type Division = typeof divisions.$inferSelect;
 export type Fair = typeof fairs.$inferSelect;
 export type Tender = typeof tenders.$inferSelect;

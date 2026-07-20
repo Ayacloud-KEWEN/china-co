@@ -10,6 +10,7 @@ const tabs = [
   { href: "/admin/companies", label: "企业" },
   { href: "/admin/industries", label: "行业" },
   { href: "/admin/cities", label: "城市" },
+  { href: "/admin/divisions", label: "行政区划" },
   { href: "/admin/policies", label: "政策" },
   { href: "/admin/suppliers", label: "供应商" },
   { href: "/admin/playbooks", label: "攻略" },

@@ -215,6 +215,40 @@ export async function deleteCity(slug: string) {
   revalidatePath("/cities");
 }
 
+// ========================= Divisions =========================
+
+// Structure (code/parent/level) comes from the GB/T 2260 seed and is never
+// edited here — only the intel fields and the optional link to a city page.
+export async function saveDivision(code: string, _prev: Result | null, fd: FormData): Promise<Result> {
+  await requireAdmin();
+  const name = str(fd, "name");
+  if (!name) return { error: "名称必填" };
+  const citySlug = str(fd, "citySlug").toLowerCase();
+  if (citySlug) {
+    const hit = await db.select({ slug: schema.cities.slug }).from(schema.cities).where(eq(schema.cities.slug, citySlug)).limit(1);
+    if (!hit.length) return { error: `城市 slug「${citySlug}」不存在` };
+  }
+
+  try {
+    await db.update(schema.divisions).set({
+      name,
+      nameEn: str(fd, "nameEn"),
+      gdp: str(fd, "gdp"),
+      pop: str(fd, "pop"),
+      pillars: list(fd, "pillars"),
+      summary: i18nOpt(fd, "summary"),
+      notes: str(fd, "notes"),
+      citySlug: citySlug || null,
+    }).where(eq(schema.divisions.code, code));
+  } catch (e) {
+    return { error: `保存失败：${(e as Error).message}` };
+  }
+  revalidatePath("/admin/divisions");
+  revalidatePath("/cities");
+  revalidatePath(`/cities/area/${code}`);
+  return { ok: true };
+}
+
 // ========================= Policies =========================
 
 const POLICY_IMPACT = ["高", "中", "低"] as const;
