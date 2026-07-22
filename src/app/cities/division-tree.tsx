@@ -41,7 +41,8 @@ function Node({ node, childrenOf, depth }: {
           {node.name}
         </Link>
         {node.citySlug && <Badge tone="blue">情报</Badge>}
-        {kids.length > 0 && <span className="text-[11px] text-muted">{kids.length}</span>}
+        {node.pop && <span className="text-[11px] text-muted">{node.pop}人</span>}
+        {kids.length > 0 && <span className="text-[11px] text-muted">· {kids.length}</span>}
       </div>
       {open && kids.map((k) => <Node key={k.code} node={k} childrenOf={childrenOf} depth={depth + 1} />)}
     </div>
@@ -101,6 +102,7 @@ export function DivisionTree({ nodes }: { nodes: DivisionNode[] }) {
                 <span>{n.name}</span>
                 <Badge>{LEVEL_LABEL[n.level] ?? n.level}</Badge>
                 <span className="text-[11px] text-muted">{n.code}</span>
+                {n.pop && <span className="text-[11px] text-muted">{n.pop}人</span>}
               </div>
               {pathOf(n) && <div className="text-[11px] text-muted">{pathOf(n)}</div>}
             </Link>

@@ -17,6 +17,70 @@ async function sparql(query: string): Promise<Record<string, { value: string }>[
   }
 }
 
+// POST variant: the division lookups send ~250 codes per query, far past what a
+// GET URL can carry. Retries because WDQS returns transient 502/504 under load.
+async function sparqlPost(query: string, tries = 4): Promise<Record<string, { value: string }>[]> {
+  for (let i = 0; i < tries; i++) {
+    try {
+      const res = await fetch(ENDPOINT, {
+        method: "POST",
+        headers: { "User-Agent": UA, Accept: "application/sparql-results+json", "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ query }),
+        signal: AbortSignal.timeout(90_000),
+      });
+      if (res.ok) return (await res.json()).results?.bindings ?? [];
+    } catch {
+      // fall through to the backoff below
+    }
+    if (i < tries - 1) await new Promise((r) => setTimeout(r, 2000 * (i + 1)));
+  }
+  return [];
+}
+
+export type DivisionStats = { population: number; areaKm2: number; nameEn: string };
+
+// Population (P1082), area (P2046) and the English label for a batch of GB/T 2260
+// division codes, keyed by P442 (China administrative division code).
+//
+// Two quirks handled here:
+//  - Wikidata writes the code in 2-digit groups ("44 03 03"), but some items use
+//    the bare form, so each code is matched both ways and the hits merged.
+//  - An item carries one population per census year; MAX takes the most recent
+//    (values only ever grow in the census series we get back).
+//
+// Codes absent from the result simply have no Wikidata item — the caller leaves
+// those rows untouched rather than guessing.
+export async function getDivisionStats(codes: string[], onProgress?: (done: number, matched: number) => void): Promise<Map<string, DivisionStats>> {
+  const spaced = (c: string) => (c.match(/.{1,2}/g) ?? []).join(" ");
+  const out = new Map<string, DivisionStats>();
+  const CHUNK = 250;
+
+  for (let i = 0; i < codes.length; i += CHUNK) {
+    const batch = codes.slice(i, i + CHUNK);
+    const values = batch.flatMap((c) => [`"${spaced(c)}"`, `"${c}"`]).join(" ");
+    const q = `SELECT ?code (MAX(?pop) AS ?p) (MAX(?area) AS ?a) (SAMPLE(?enL) AS ?en) WHERE {
+      VALUES ?code { ${values} }
+      ?item wdt:P442 ?code.
+      OPTIONAL { ?item wdt:P1082 ?pop. }
+      OPTIONAL { ?item wdt:P2046 ?area. }
+      OPTIONAL { ?item rdfs:label ?enL. FILTER(LANG(?enL)="en") }
+    } GROUP BY ?code`;
+
+    for (const r of await sparqlPost(q)) {
+      const code = (r.code?.value ?? "").replace(/\s+/g, "");
+      if (!code) continue;
+      const prev = out.get(code);
+      out.set(code, {
+        population: Math.max(Number(r.p?.value ?? 0), prev?.population ?? 0),
+        areaKm2: Math.max(Number(r.a?.value ?? 0), prev?.areaKm2 ?? 0),
+        nameEn: r.en?.value || prev?.nameEn || "",
+      });
+    }
+    onProgress?.(Math.min(i + CHUNK, codes.length), out.size);
+  }
+  return out;
+}
+
 export type Ownership = { founders: string[]; parents: string[]; subsidiaries: string[] };
 
 // Founders (P112), parent orgs (P749), subsidiaries (P355) for a company QID.

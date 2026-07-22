@@ -261,6 +261,7 @@ export const divisions = pgTable("divisions", {
   // Admin-fillable intel — blank until someone fills it in.
   gdp: text("gdp").notNull().default(""),
   pop: text("pop").notNull().default(""),
+  area: text("area").notNull().default(""),
   pillars: jsonb("pillars").$type<string[]>().notNull().default([]),
   summary: jsonb("summary").$type<I18nText>(),
   notes: text("notes").notNull().default(""),

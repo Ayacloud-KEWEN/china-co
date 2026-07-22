@@ -24,6 +24,7 @@ export const getDivisionTree = () =>
     level: schema.divisions.level,
     name: schema.divisions.name,
     citySlug: schema.divisions.citySlug,
+    pop: schema.divisions.pop,
   }).from(schema.divisions).orderBy(schema.divisions.code);
 
 export type DivisionNode = Awaited<ReturnType<typeof getDivisionTree>>[number];

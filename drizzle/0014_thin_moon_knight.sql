@@ -1,0 +1,1 @@
+ALTER TABLE "divisions" ADD COLUMN "area" text DEFAULT '' NOT NULL;

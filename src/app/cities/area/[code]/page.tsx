@@ -15,7 +15,7 @@ export default async function AreaDetail({ params }: { params: Promise<{ code: s
   if (!data) return notFound();
   const { division: d, ancestors, children } = data;
 
-  const filled = d.gdp || d.pop || d.pillars.length > 0 || d.summary?.zh || d.notes;
+  const filled = d.gdp || d.pop || d.area || d.pillars.length > 0 || d.summary?.zh || d.notes;
 
   return (
     <div className="space-y-6">
@@ -36,10 +36,11 @@ export default async function AreaDetail({ params }: { params: Promise<{ code: s
       {filled ? (
         <Card>
           <SectionTitle>区域情报</SectionTitle>
-          {(d.gdp || d.pop) && (
-            <div className="mb-3 grid grid-cols-2 gap-3">
+          {(d.gdp || d.pop || d.area) && (
+            <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
               {d.gdp && <Stat label="GDP" value={d.gdp} />}
               {d.pop && <Stat label="常住人口" value={d.pop} />}
+              {d.area && <Stat label="面积" value={d.area} />}
             </div>
           )}
           {d.summary?.zh && <p className="text-sm text-muted">{d.summary.zh}</p>}

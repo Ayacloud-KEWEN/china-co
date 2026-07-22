@@ -99,6 +99,13 @@
       "when": 1784554773563,
       "tag": "0013_burly_rictor",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1784756382561,
+      "tag": "0014_thin_moon_knight",
+      "breakpoints": true
     }
   ]
 }

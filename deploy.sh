@@ -87,6 +87,11 @@ fi
 say "Importing administrative divisions…"
 npm run db:divisions || printf '\033[1;33m⚠ divisions import failed — /cities tree keeps the previous data.\033[0m\n'
 
+# Population / area / English name from Wikidata. Fills blanks only, so admin
+# edits survive; exits in seconds once everything is populated.
+say "Enriching divisions (population/area from Wikidata)…"
+npm run db:divisions:enrich || printf '\033[1;33m⚠ divisions enrichment failed — existing figures kept.\033[0m\n'
+
 if [ "$FIRST" = 1 ] || [ "$REFRESH" = 1 ]; then
   say "Ingesting real data sources (this can take a few minutes)…"
   npm run db:ingest

@@ -235,6 +235,7 @@ export async function saveDivision(code: string, _prev: Result | null, fd: FormD
       nameEn: str(fd, "nameEn"),
       gdp: str(fd, "gdp"),
       pop: str(fd, "pop"),
+      area: str(fd, "area"),
       pillars: list(fd, "pillars"),
       summary: i18nOpt(fd, "summary"),
       notes: str(fd, "notes"),

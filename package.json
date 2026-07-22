@@ -15,6 +15,7 @@
     "db:ingest": "tsx src/db/ingest.ts",
     "db:embed": "tsx src/db/embed.ts",
     "db:divisions": "tsx src/db/divisions.ts",
+    "db:divisions:enrich": "tsx src/db/divisions-enrich.ts",
     "db:studio": "drizzle-kit studio",
     "db:setup": "docker compose up -d && drizzle-kit migrate && tsx src/db/seed.ts && tsx src/db/ingest.ts && tsx src/db/embed.ts"
   },

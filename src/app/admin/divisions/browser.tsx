@@ -5,14 +5,14 @@ import Link from "next/link";
 import { Search, Pencil } from "lucide-react";
 import type { Division } from "@/db/schema";
 
-type Row = Pick<Division, "code" | "parentCode" | "level" | "name" | "citySlug" | "gdp" | "pop" | "notes"> & {
+type Row = Pick<Division, "code" | "parentCode" | "level" | "name" | "citySlug" | "gdp" | "pop" | "area" | "notes"> & {
   pillars: string[];
   hasSummary: boolean;
 };
 
 const LEVEL_LABEL: Record<string, string> = { province: "省", city: "市", district: "区县", town: "乡镇" };
 
-const isFilled = (r: Row) => !!(r.gdp || r.pop || r.pillars.length || r.notes || r.hasSummary || r.citySlug);
+const isFilled = (r: Row) => !!(r.gdp || r.pop || r.area || r.pillars.length || r.notes || r.hasSummary || r.citySlug);
 
 export function DivisionBrowser({ rows }: { rows: Row[] }) {
   const [q, setQ] = useState("");
@@ -96,7 +96,7 @@ export function DivisionBrowser({ rows }: { rows: Row[] }) {
                   <td className="px-4 py-2 text-muted">{LEVEL_LABEL[r.level] ?? r.level}</td>
                   <td className="hidden px-4 py-2 text-xs text-muted sm:table-cell">
                     {isFilled(r)
-                      ? [r.gdp && "GDP", r.pop && "人口", r.pillars.length > 0 && "产业", r.hasSummary && "概述", r.notes && "备注", r.citySlug && `→ ${r.citySlug}`].filter(Boolean).join(" · ")
+                      ? [r.gdp && "GDP", r.pop && "人口", r.area && "面积", r.pillars.length > 0 && "产业", r.hasSummary && "概述", r.notes && "备注", r.citySlug && `→ ${r.citySlug}`].filter(Boolean).join(" · ")
                       : "—"}
                   </td>
                   <td className="px-4 py-2">
