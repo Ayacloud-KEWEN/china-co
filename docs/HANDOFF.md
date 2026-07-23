@@ -46,11 +46,12 @@ Yahoo Finance、Frankfurter/ECB。
 **关键点**：导入是 upsert，**只刷新结构与名称，不覆盖后台填写的情报**，可随部署反复运行（`deploy.sh` 已内置）；
 表结构支持任意层级，扩展到乡镇街道只需换数据源重跑，**无需改 schema**。
 
-**基础数据已填充**（迁移 `drizzle/0014` 加 `area` 列）：`npm run db:divisions:enrich` 从 Wikidata 按
-**P442（区划代码）**精确匹配，填 **人口 / 面积 / 英文名**——省 31/31、地级市 332/342、区县 2886/3056（94%）。
+**基础数据已填充**（迁移 `0014` 加 `area`；`0015` 加 `website`/`postcode`/`dial_code`/`geo`/`summary_source`）：
+`npm run db:divisions:enrich` 从 **Wikidata**（按 P442 区划代码精确匹配）取人口/面积/经纬度/官网/邮编/区号/英文名，
+再按维基站点链接从 **Wikipedia** 批量取**三语概述**。区县级实测覆盖：人口 94%、概述 92–94%、经纬度 94%、官网 91%、邮编 91%、区号 37%。
 **默认只填空白**，后台手改的值不被覆盖（`-- --force` 强刷）；无 Wikidata 条目的约 6% 保持空白，不猜测填充。
-**注意两个填不了的字段**：区县 **GDP**（全 Wikidata 带区划代码又有 P2131 的不足 40 条，无源）和
-**支柱产业/概述**（无结构化源），这两类只能在 `/admin/divisions` 人工录入。
+概述带 `summary_source='wikipedia'` 标记（前台标注来源），**后台一改写标记即清除**，之后不再被覆盖。
+**仍然填不了的**：市/县 **GDP**（实测省级 90% 有 P2131，地级市与区县均 0%）和**支柱产业**，只能在 `/admin/divisions` 人工录入。
 
 **能力**：
 - 向量 RAG（pgvector + 本地 `multilingual-e5-small` embedding）+ **AI 工具调用**（精确查库）+ 引用来源

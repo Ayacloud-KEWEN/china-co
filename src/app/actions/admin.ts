@@ -229,6 +229,13 @@ export async function saveDivision(code: string, _prev: Result | null, fd: FormD
     if (!hit.length) return { error: `城市 slug「${citySlug}」不存在` };
   }
 
+  // Any admin edit to the text makes it hand-written, so drop the "wikipedia"
+  // marker — the importer only ever replaces summaries it wrote itself.
+  const [before] = await db.select({ summary: schema.divisions.summary, source: schema.divisions.summarySource })
+    .from(schema.divisions).where(eq(schema.divisions.code, code)).limit(1);
+  const summary = i18nOpt(fd, "summary");
+  const changed = JSON.stringify(summary) !== JSON.stringify(before?.summary ?? null);
+
   try {
     await db.update(schema.divisions).set({
       name,
@@ -236,8 +243,12 @@ export async function saveDivision(code: string, _prev: Result | null, fd: FormD
       gdp: str(fd, "gdp"),
       pop: str(fd, "pop"),
       area: str(fd, "area"),
+      website: str(fd, "website"),
+      postcode: str(fd, "postcode"),
+      dialCode: str(fd, "dialCode"),
       pillars: list(fd, "pillars"),
-      summary: i18nOpt(fd, "summary"),
+      summary,
+      summarySource: changed ? "" : (before?.source ?? ""),
       notes: str(fd, "notes"),
       citySlug: citySlug || null,
     }).where(eq(schema.divisions.code, code));

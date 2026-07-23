@@ -37,43 +37,91 @@ async function sparqlPost(query: string, tries = 4): Promise<Record<string, { va
   return [];
 }
 
-export type DivisionStats = { population: number; areaKm2: number; nameEn: string };
+export type DivisionStats = {
+  population: number;
+  areaKm2: number;
+  nameEn: string;
+  gdpCny: number;                 // only provinces carry P2131 in practice
+  website: string;
+  postcode: string;
+  dialCode: string;
+  lat: number | null;
+  lon: number | null;
+  wiki: { zh: string; en: string; fr: string };   // Wikipedia article titles
+};
 
-// Population (P1082), area (P2046) and the English label for a batch of GB/T 2260
-// division codes, keyed by P442 (China administrative division code).
+// Facts for a batch of GB/T 2260 division codes, keyed by P442 (China
+// administrative division code): population (P1082), area (P2046), nominal GDP
+// (P2131), government website (P856), postcode (P281), dialling code (P473),
+// coordinates (P625), the English label, and Wikipedia article titles per
+// language (used to fetch summaries separately).
 //
-// Two quirks handled here:
+// Quirks handled here:
 //  - Wikidata writes the code in 2-digit groups ("44 03 03"), but some items use
 //    the bare form, so each code is matched both ways and the hits merged.
 //  - An item carries one population per census year; MAX takes the most recent
 //    (values only ever grow in the census series we get back).
+//  - P625 arrives as the WKT literal "Point(lon lat)" — note the order.
 //
 // Codes absent from the result simply have no Wikidata item — the caller leaves
 // those rows untouched rather than guessing.
 export async function getDivisionStats(codes: string[], onProgress?: (done: number, matched: number) => void): Promise<Map<string, DivisionStats>> {
   const spaced = (c: string) => (c.match(/.{1,2}/g) ?? []).join(" ");
   const out = new Map<string, DivisionStats>();
-  const CHUNK = 250;
+  const CHUNK = 200;
+
+  // "https://zh.wikipedia.org/wiki/深圳市" → "深圳市"
+  const title = (url: string) => {
+    if (!url) return "";
+    try { return decodeURIComponent(url.split("/wiki/")[1] ?? "").replace(/_/g, " "); } catch { return ""; }
+  };
 
   for (let i = 0; i < codes.length; i += CHUNK) {
     const batch = codes.slice(i, i + CHUNK);
     const values = batch.flatMap((c) => [`"${spaced(c)}"`, `"${c}"`]).join(" ");
-    const q = `SELECT ?code (MAX(?pop) AS ?p) (MAX(?area) AS ?a) (SAMPLE(?enL) AS ?en) WHERE {
+    const q = `SELECT ?code (MAX(?pop) AS ?p) (MAX(?area) AS ?a) (MAX(?gdp) AS ?g)
+      (SAMPLE(?enL) AS ?en) (SAMPLE(?site) AS ?w) (SAMPLE(?post) AS ?pc)
+      (SAMPLE(?dial) AS ?dc) (SAMPLE(?coord) AS ?xy)
+      (SAMPLE(?zhw) AS ?zh) (SAMPLE(?enw) AS ?enwiki) (SAMPLE(?frw) AS ?fr) WHERE {
       VALUES ?code { ${values} }
       ?item wdt:P442 ?code.
       OPTIONAL { ?item wdt:P1082 ?pop. }
       OPTIONAL { ?item wdt:P2046 ?area. }
+      OPTIONAL { ?item wdt:P2131 ?gdp. }
+      OPTIONAL { ?item wdt:P856 ?site. }
+      OPTIONAL { ?item wdt:P281 ?post. }
+      OPTIONAL { ?item wdt:P473 ?dial. }
+      OPTIONAL { ?item wdt:P625 ?coord. }
       OPTIONAL { ?item rdfs:label ?enL. FILTER(LANG(?enL)="en") }
+      OPTIONAL { ?zhw schema:about ?item; schema:isPartOf <https://zh.wikipedia.org/>. }
+      OPTIONAL { ?enw schema:about ?item; schema:isPartOf <https://en.wikipedia.org/>. }
+      OPTIONAL { ?frw schema:about ?item; schema:isPartOf <https://fr.wikipedia.org/>. }
     } GROUP BY ?code`;
 
     for (const r of await sparqlPost(q)) {
       const code = (r.code?.value ?? "").replace(/\s+/g, "");
       if (!code) continue;
       const prev = out.get(code);
+
+      const m = /Point\(([-\d.]+) ([-\d.]+)\)/.exec(r.xy?.value ?? "");
+      const lon = m ? Number(m[1]) : null;
+      const lat = m ? Number(m[2]) : null;
+
       out.set(code, {
         population: Math.max(Number(r.p?.value ?? 0), prev?.population ?? 0),
         areaKm2: Math.max(Number(r.a?.value ?? 0), prev?.areaKm2 ?? 0),
+        gdpCny: Math.max(Number(r.g?.value ?? 0), prev?.gdpCny ?? 0),
         nameEn: r.en?.value || prev?.nameEn || "",
+        website: r.w?.value || prev?.website || "",
+        postcode: r.pc?.value || prev?.postcode || "",
+        dialCode: r.dc?.value || prev?.dialCode || "",
+        lat: lat ?? prev?.lat ?? null,
+        lon: lon ?? prev?.lon ?? null,
+        wiki: {
+          zh: title(r.zh?.value ?? "") || prev?.wiki.zh || "",
+          en: title(r.enwiki?.value ?? "") || prev?.wiki.en || "",
+          fr: title(r.fr?.value ?? "") || prev?.wiki.fr || "",
+        },
       });
     }
     onProgress?.(Math.min(i + CHUNK, codes.length), out.size);

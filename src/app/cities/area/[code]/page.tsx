@@ -15,7 +15,8 @@ export default async function AreaDetail({ params }: { params: Promise<{ code: s
   if (!data) return notFound();
   const { division: d, ancestors, children } = data;
 
-  const filled = d.gdp || d.pop || d.area || d.pillars.length > 0 || d.summary?.zh || d.notes;
+  const filled = d.gdp || d.pop || d.area || d.pillars.length > 0 || d.summary?.zh || d.notes
+    || d.website || d.postcode || d.dialCode;
 
   return (
     <div className="space-y-6">
@@ -43,11 +44,30 @@ export default async function AreaDetail({ params }: { params: Promise<{ code: s
               {d.area && <Stat label="面积" value={d.area} />}
             </div>
           )}
-          {d.summary?.zh && <p className="text-sm text-muted">{d.summary.zh}</p>}
+          {d.summary?.zh && (
+            <>
+              <p className="text-sm text-muted">{d.summary.zh}</p>
+              {d.summarySource === "wikipedia" && (
+                <div className="mt-1 text-[11px] text-muted">摘要来源：维基百科</div>
+              )}
+            </>
+          )}
           {d.pillars.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">{d.pillars.map((p) => <Badge key={p}>{p}</Badge>)}</div>
           )}
           {d.notes && <p className="mt-3 whitespace-pre-wrap text-sm text-muted">{d.notes}</p>}
+
+          {(d.website || d.postcode || d.dialCode) && (
+            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 border-t pt-3 text-sm">
+              {d.website && (
+                <a href={d.website} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
+                  政府官网 ↗
+                </a>
+              )}
+              {d.postcode && <span className="text-muted">邮编 {d.postcode}</span>}
+              {d.dialCode && <span className="text-muted">区号 {d.dialCode}</span>}
+            </div>
+          )}
         </Card>
       ) : (
         <Card>

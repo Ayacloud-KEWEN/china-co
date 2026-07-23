@@ -262,8 +262,16 @@ export const divisions = pgTable("divisions", {
   gdp: text("gdp").notNull().default(""),
   pop: text("pop").notNull().default(""),
   area: text("area").notNull().default(""),
+  website: text("website").notNull().default(""),      // 政府官网 P856
+  postcode: text("postcode").notNull().default(""),    // 邮政编码 P281
+  dialCode: text("dial_code").notNull().default(""),   // 电话区号 P473
+  geo: jsonb("geo").$type<Geo>(),                      // 经纬度 P625
   pillars: jsonb("pillars").$type<string[]>().notNull().default([]),
   summary: jsonb("summary").$type<I18nText>(),
+  // "wikipedia" when the summary came from an imported extract rather than
+  // being written by hand — the UI attributes it, and a re-import may replace
+  // it. Cleared as soon as an admin edits the text.
+  summarySource: text("summary_source").notNull().default(""),
   notes: text("notes").notNull().default(""),
 }, (t) => [index("divisions_parent_idx").on(t.parentCode), index("divisions_name_idx").on(t.name)]);
 

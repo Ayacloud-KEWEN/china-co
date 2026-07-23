@@ -62,7 +62,7 @@ npm run dev                        # http://localhost:3000
 | `npm run db:seed` | 用 `src/lib/data.ts` 灌入种子数据 |
 | `npm run db:ingest` | **从真实数据源拉取并更新数据库**（见下） |
 | `npm run db:divisions` | 导入全国行政区划结构（省/市/区县 3429 行，幂等，不覆盖后台填写内容） |
-| `npm run db:divisions:enrich` | 从 Wikidata 填各级人口/面积/英文名（只填空白，`-- --force` 强刷） |
+| `npm run db:divisions:enrich` | 填各级人口/面积/三语概述/经纬度/官网/邮编/区号（只填空白，`-- --force` 强刷） |
 | `npm run db:studio` | 打开 Drizzle Studio 可视化查看数据 |
 | `npm run db:setup` | 起库 + 建表 + 种子 + 真实数据摄取，一键完成 |
 

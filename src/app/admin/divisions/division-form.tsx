@@ -29,9 +29,21 @@ export function DivisionForm({ d }: { d: Division }) {
           <Field label="GDP" name="gdp" defaultValue={d.gdp} placeholder="¥8,500亿" hint="无免费数据源，需人工填写" />
           <Field label="常住人口" name="pop" defaultValue={d.pop} placeholder="185万" hint="由 db:divisions:enrich 从 Wikidata 填充" />
         </Row>
-        <Field label="面积" name="area" defaultValue={d.area} placeholder="186.58 km²" hint="由 db:divisions:enrich 从 Wikidata 填充" />
+        <Row>
+          <Field label="面积" name="area" defaultValue={d.area} placeholder="186.58 km²" hint="由 db:divisions:enrich 从 Wikidata 填充" />
+          <Field label="政府官网" name="website" defaultValue={d.website} placeholder="http://www.szns.gov.cn" />
+        </Row>
+        <Row>
+          <Field label="邮政编码" name="postcode" defaultValue={d.postcode} placeholder="518052" />
+          <Field label="电话区号" name="dialCode" defaultValue={d.dialCode} placeholder="0755" />
+        </Row>
         <Area label="支柱产业" name="pillars" defaultValue={d.pillars.join(", ")} hint="逗号或换行分隔" placeholder="电子信息, 生物医药" />
         <I18nFields label="区域概述" name="summary" zh={d.summary?.zh} en={d.summary?.en} fr={d.summary?.fr} />
+        {d.summarySource === "wikipedia" && (
+          <p className="-mt-2 text-[11px] text-muted">
+            当前概述自动摘自维基百科。改写后即视为人工内容，重跑导入不会再覆盖。
+          </p>
+        )}
         <Area label="内部备注" name="notes" defaultValue={d.notes} rows={4} hint="仅在该区域页面展示的补充说明" />
         <Field label="关联城市 Slug（可选）" name="citySlug" defaultValue={d.citySlug ?? ""} placeholder="shenzhen"
           hint="填写后，前台点击该行政区将跳转到对应的城市情报详情页" />

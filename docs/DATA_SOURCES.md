@@ -174,14 +174,17 @@ China MOS 的所有情报数据来自**公开、免费、无需付费 API Key** 
 | 数据源 | 用途 | 脚本 |
 | --- | --- | --- |
 | **国标行政区划代码（GB/T 2260）公开 JSON 数据集** | `divisions` 表：31 省 / 342 地级市 / 3056 区县的名称与上下级结构，驱动 `/cities` 区划树与 `/admin/divisions` | `src/db/divisions.ts`（`npm run db:divisions`） |
-| **Wikidata SPARQL（P442 区划代码）** | 各级**人口**(P1082) / **面积**(P2046) / 英文名，按区划代码精确匹配 | `getDivisionStats()` in `src/lib/sources/wikidata-sparql.ts`（`npm run db:divisions:enrich`） |
+| **Wikidata SPARQL（P442 区划代码）** | 各级**人口**(P1082)/**面积**(P2046)/**经纬度**(P625)/**政府官网**(P856)/**邮编**(P281)/**区号**(P473)/英文名/省级 GDP(P2131) | `getDivisionStats()` in `src/lib/sources/wikidata-sparql.ts` |
+| **Wikipedia（MediaWiki extracts 批量接口）** | 各级**三语概述**（条目首段，按 Wikidata 站点链接定位） | `getWikipediaExtracts()` in `src/lib/sources/wikipedia.ts` |
 
 - 独立于摄取流程：行政区划结构一年才变几次，不必跟着每日 `db:ingest` 跑。
 - `db:divisions` **只写结构**（`name` / `parent_code` / `level`）。
-- `db:divisions:enrich` 填 **人口 / 面积 / 英文名**，覆盖率：省 100%、地级市 97%、区县 94%；
-  **默认只填空白**，后台手改的值不被覆盖（`-- --force` 强制刷新）；无对应条目的约 6% 保持空白，不猜测。
-- **GDP 无免费源**：全 Wikidata 带区划代码又有 P2131 的条目不足 40 个。区县 GDP 只能人工录入；
-  省级 GDP 走独立的 `provinces` 表。**支柱产业 / 概述**同样无结构化源，需人工填写。
+- `db:divisions:enrich` 填 **人口 / 面积 / 概述 / 经纬度 / 官网 / 邮编 / 区号 / 英文名**。
+  实测覆盖率（区县级）：人口 94%、概述 92–94%、经纬度 94%、官网 91%、邮编 91%、区号 37%。
+- **默认只填空白**，后台手改的值不被覆盖（`-- --force` 强制刷新）；无对应条目的约 6% 保持空白，不猜测。
+- 概述为**百科口径**，标记 `summary_source='wikipedia'` 并在前台标注来源；后台改写后标记清除，不再被覆盖。
+- **市/县 GDP 无免费源**：实测省级 90% 有 P2131，地级市与区县均为 **0%**，只能人工录入。
+  省级 GDP 另走独立的 `provinces` 表。**支柱产业**同样无结构化源，需人工填写。
 - 表为自引用结构，扩展到乡镇街道只需换数据源重跑，无需改 schema。
 - 不含港澳台（数据集本身不含），如需可在后台手工补。
 
